@@ -1,6 +1,6 @@
 import { getSession } from "@/lib/session";
 import { supabaseAdmin } from "@/lib/supabaseServer";
-import { BackgroundGlow, cardClass } from "@/components/ui";
+import { BackgroundGlow, SourceLink, cardClass } from "@/components/ui";
 import { formatPp, formatStars } from "@/lib/format";
 
 const ERROR_MESSAGES: Record<string, string> = {
@@ -108,6 +108,7 @@ export default async function LinkPage({
           </div>
         )}
       </main>
+      <SourceLink floating />
     </>
   );
 }
