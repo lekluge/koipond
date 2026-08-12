@@ -1,4 +1,4 @@
-import { BackgroundGlow, buttonClass, cardClass } from "@/components/ui";
+import { BackgroundGlow, SourceLink, buttonClass, cardClass } from "@/components/ui";
 
 export default function Home() {
   return (
@@ -21,6 +21,7 @@ export default function Home() {
           </a>
         </div>
       </main>
+      <SourceLink floating />
     </>
   );
 }

@@ -14,7 +14,7 @@ import { LiveEligibleCount } from "./LiveEligibleCount";
 import { WinnerModal } from "./WinnerModal";
 import { PickWinnerButton } from "./PickWinnerButton";
 import { SettingsAutoSave } from "./SettingsAutoSave";
-import { BackgroundGlow, ToggleField, buttonClass, cardClass, inputClass, labelClass } from "@/components/ui";
+import { BackgroundGlow, SourceLink, ToggleField, buttonClass, cardClass, inputClass, labelClass } from "@/components/ui";
 import { env } from "@/lib/env";
 import { deletePresetAction, savePresetAction, saveSettingsAction } from "./actions";
 
@@ -405,6 +405,7 @@ export default async function AdminPage({
           </section>
         </EntriesLiveProvider>
       </main>
+      <SourceLink />
     </>
   );
 }
@@ -414,6 +415,7 @@ function Centered({ children }: { children: React.ReactNode }) {
     <>
       <BackgroundGlow />
       <main className="flex min-h-screen flex-col items-center justify-center text-center">{children}</main>
+      <SourceLink floating />
     </>
   );
 }

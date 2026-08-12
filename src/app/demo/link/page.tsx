@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { BackgroundGlow, buttonClass, cardClass, inputClass } from "@/components/ui";
+import { BackgroundGlow, SourceLink, buttonClass, cardClass, inputClass } from "@/components/ui";
 
 type Step = "start" | "twitch-done" | "linked";
 
@@ -121,6 +121,7 @@ export default function DemoLinkPage() {
           </a>
         )}
       </main>
+      <SourceLink floating />
     </>
   );
 }

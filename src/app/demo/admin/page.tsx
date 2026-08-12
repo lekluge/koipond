@@ -6,7 +6,7 @@ import type { DemoCandidate, DemoChatMessage, DemoDraw, DemoEntrant, GiveawaySet
 import { RANK_DIGIT_PRESETS } from "@/lib/rankPresets";
 import { ChatWindowPopup, TwitchOsuBadges } from "@/components/WinnerReveal";
 import { Confetti } from "@/app/admin/Confetti";
-import { BackgroundGlow, buttonClass, cardClass, inputClass, labelClass } from "@/components/ui";
+import { BackgroundGlow, SourceLink, buttonClass, cardClass, inputClass, labelClass } from "@/components/ui";
 
 type EntryState = {
   triggerWord: string;
@@ -659,6 +659,7 @@ export default function DemoAdminPage() {
           </a>
         </p>
       </main>
+      <SourceLink />
     </>
   );
 }

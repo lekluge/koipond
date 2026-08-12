@@ -1,4 +1,4 @@
-import { BackgroundGlow, buttonClass } from "@/components/ui";
+import { BackgroundGlow, SourceLink, buttonClass } from "@/components/ui";
 
 export default function DemoLandingPage() {
   return (
@@ -25,6 +25,7 @@ export default function DemoLandingPage() {
           </a>
         </div>
       </main>
+      <SourceLink floating />
     </>
   );
 }
