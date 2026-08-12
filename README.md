@@ -187,6 +187,44 @@ Deploys as a standard Next.js app; [Vercel](https://vercel.com/new) is what it r
 environment variables from `.env.example`, point `NEXT_PUBLIC_APP_URL` at the final domain, and
 update the OAuth redirect URLs accordingly.
 
+### Keeping osu! stats fresh
+
+Stats are cached in `osu_stats`, written when someone links their account. Without a refresh
+they age: a player's rank drifts and the criteria draw from stale numbers.
+
+[`vercel.json`](vercel.json) schedules `GET /api/cron/refresh-osu-stats` every 30 minutes. Set
+`CRON_SECRET` in the environment to any long random value — Vercel sends it as
+`Authorization: Bearer <CRON_SECRET>` when it runs the cron, and the route answers 503 while it
+is unset, so nothing runs unnoticed by accident.
+
+Each run refreshes the least recently updated profiles first, up to 250 of them and capped at
+four minutes, then stops. A queue longer than one run isn't dropped — it rotates through over
+the following runs, and the response body reports what is left:
+
+```json
+{ "refreshed": 143, "failed": 0, "remaining": 0, "durationMs": 121584 }
+```
+
+It is scheduled every 30 minutes; change that in `vercel.json` (cron syntax, UTC). Hobby accounts
+are limited to one run per day — a more frequent expression fails at deployment — and cap
+functions at 60 seconds, so `?limit=40` is a more realistic batch there. To trigger a run by
+hand:
+
+```bash
+curl -H "Authorization: Bearer $CRON_SECRET" https://<your-domain>/api/cron/refresh-osu-stats
+```
+
+`scripts/refresh-osu-stats.mjs` does the same thing from a shell, without a time budget and for
+every participant in one pass — useful for a one-off backfill. It reads no env file on its own,
+so name the one you mean:
+
+```bash
+node --env-file=.env.local scripts/refresh-osu-stats.mjs
+```
+
+It prints the host it is about to write to before it starts, so a run aimed at the wrong
+database is visible before anything is written.
+
 Two things worth knowing:
 
 - **Put the functions in the same region as the database.** Every request makes several database

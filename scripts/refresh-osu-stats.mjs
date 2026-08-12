@@ -1,19 +1,25 @@
-import fs from "node:fs";
 import { createClient } from "@supabase/supabase-js";
 
 const API_URL = "https://osu.ppy.sh/api/v2";
 const DELAY_MS = 1500;
 
-const env = Object.fromEntries(
-  fs
-    .readFileSync(".env.local", "utf8")
-    .split(/\r?\n/)
-    .filter((l) => l.trim() && !l.trim().startsWith("#"))
-    .map((l) => {
-      const i = l.indexOf("=");
-      return [l.slice(0, i).trim(), l.slice(i + 1).trim().replace(/^["']|["']$/g, "")];
-    }),
-);
+const REQUIRED = [
+  "NEXT_PUBLIC_SUPABASE_URL",
+  "SUPABASE_SERVICE_ROLE_KEY",
+  "OSU_CLIENT_ID",
+  "OSU_CLIENT_SECRET",
+];
+
+const env = Object.fromEntries(REQUIRED.map((key) => [key, process.env[key]]));
+
+const missing = REQUIRED.filter((key) => !env[key]);
+if (missing.length > 0) {
+  console.error(
+    `Missing ${missing.join(", ")}.\n` +
+      "Pass an env file, e.g. `node --env-file=.env.local scripts/refresh-osu-stats.mjs`.",
+  );
+  process.exit(1);
+}
 
 const db = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
   auth: { persistSession: false },
@@ -42,7 +48,7 @@ const { data: participants, error } = await db
   .not("osu_id", "is", null);
 if (error) throw error;
 
-console.log(`Refreshing ${participants.length} participants…`);
+console.log(`Refreshing ${participants.length} participants on ${new URL(env.NEXT_PUBLIC_SUPABASE_URL).host}…`);
 let changed = 0;
 
 for (const [i, p] of participants.entries()) {
@@ -113,4 +119,3 @@ for (const [i, p] of participants.entries()) {
 }
 
 console.log(`Done. ${changed} of ${participants.length} had a mod-adjusted star rating.`);
-process.exit(0);

@@ -1,7 +1,26 @@
 import "server-only";
 import { supabaseAdmin } from "@/lib/supabaseServer";
-import { fetchOsuStats, type OsuMe } from "@/lib/osu";
+import { fetchOsuStats, type OsuMe, type OsuStats } from "@/lib/osu";
 import type { Session } from "@/lib/session";
+
+export async function saveOsuStats(participantId: string, stats: OsuStats) {
+  const { error } = await supabaseAdmin().from("osu_stats").upsert(
+    {
+      participant_id: participantId,
+      global_rank: stats.globalRank,
+      country_rank: stats.countryRank,
+      country_code: stats.countryCode,
+      pp: stats.pp,
+      accuracy: stats.accuracy,
+      playcount: stats.playcount,
+      top_play_pp: stats.topPlayPp,
+      top_play_sr: stats.topPlaySr,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "participant_id" },
+  );
+  if (error) throw error;
+}
 
 export async function linkParticipant(session: Session, osu: OsuMe) {
   const db = supabaseAdmin();
@@ -23,25 +42,7 @@ export async function linkParticipant(session: Session, osu: OsuMe) {
 
   if (error) throw error;
 
-  const stats = await fetchOsuStats(osu.id);
-
-  const { error: statsError } = await db.from("osu_stats").upsert(
-    {
-      participant_id: participant.id,
-      global_rank: stats.globalRank,
-      country_rank: stats.countryRank,
-      country_code: stats.countryCode,
-      pp: stats.pp,
-      accuracy: stats.accuracy,
-      playcount: stats.playcount,
-      top_play_pp: stats.topPlayPp,
-      top_play_sr: stats.topPlaySr,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "participant_id" },
-  );
-
-  if (statsError) throw statsError;
+  await saveOsuStats(participant.id, await fetchOsuStats(osu.id));
 
   return participant;
 }
