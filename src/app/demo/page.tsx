@@ -8,7 +8,7 @@ export default function DemoLandingPage() {
         <p className="rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-xs font-medium text-amber-300">
           DEMO — runs entirely without Supabase/Twitch/osu! setup
         </p>
-        <h1 className="text-2xl font-bold text-gradient">osu! Tournament Winner Picker — POC</h1>
+        <h1 className="text-2xl font-bold text-gradient">osu! Winner Picker — POC</h1>
         <p className="text-sm text-zinc-400">
           13 dummy participants are already preloaded. Best to open the dashboard and overlay in
           two tabs side by side.

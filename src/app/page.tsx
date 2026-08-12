@@ -8,7 +8,7 @@ export default function Home() {
         <div className={cardClass + " flex flex-col items-center gap-6"}>
           <span className="text-4xl">🎱</span>
           <div>
-            <h1 className="text-2xl font-bold text-gradient">osu! Tournament Winner Picker</h1>
+            <h1 className="text-2xl font-bold text-gradient">osu! Winner Picker</h1>
             <p className="mt-2 text-sm text-zinc-400">
               Link your Twitch and osu! account to take part in giveaways.
             </p>
