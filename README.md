@@ -1,7 +1,22 @@
-# Koipond
+<div align="center">
 
-Giveaway tool for Twitch streamers, built around osu! profiles. Live at
-[koipond.live](https://www.koipond.live).
+# 🎱 Koipond
+
+**Giveaway tool for Twitch streamers, built around osu! profiles.**
+
+[![Live at koipond.live](https://img.shields.io/badge/live-koipond.live-a855f7?style=flat-square)](https://www.koipond.live)
+[![Next.js](https://img.shields.io/badge/Next.js-16-000000?style=flat-square&logo=nextdotjs&logoColor=white)](https://nextjs.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
+[![Supabase](https://img.shields.io/badge/Supabase-Postgres_+_Realtime-3FCF8E?style=flat-square&logo=supabase&logoColor=white)](https://supabase.com)
+[![Twitch EventSub](https://img.shields.io/badge/Twitch-EventSub-9146FF?style=flat-square&logo=twitch&logoColor=white)](https://dev.twitch.tv/docs/eventsub/)
+[![osu! API v2](https://img.shields.io/badge/osu!-API_v2-FF66AA?style=flat-square&logo=osu&logoColor=white)](https://osu.ppy.sh/docs/index.html)
+[![License](https://img.shields.io/badge/license-all_rights_reserved-lightgrey?style=flat-square)](LICENSE)
+
+[Try the demo](#try-it-without-any-setup) · [What it does](#what-it-does) · [Setup](#setup) ·
+[Local development](#local-development) · [Deployment](#deployment)
+
+</div>
 
 Viewers link their Twitch and osu! accounts once, then enter a giveaway by typing a keyword in
 chat — the way Nightbot works. The streamer draws a random winner from everyone who entered,
