@@ -55,9 +55,10 @@ export function LiveEligibleCount({ initialCount }: { initialCount: number }) {
     }
 
     function recompute() {
+      const entering = checked("subscribersOnly") ? entrants.filter((e) => e.is_subscriber) : entrants;
       const remaining = checked("uniqueWinners")
-        ? entrants.filter((e) => !pastWinners.has(e.twitch_id))
-        : entrants;
+        ? entering.filter((e) => !pastWinners.has(e.twitch_id))
+        : entering;
       const eligible = checked("ignoreOsuCriteria")
         ? remaining
         : remaining.filter((e) => e.linked).filter((e) => matchesCriteria(toParticipant(e), readCriteriaFromForm()));

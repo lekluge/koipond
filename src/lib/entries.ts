@@ -10,6 +10,7 @@ export type EntrySettings = {
   uniqueWinners: boolean;
   chatAnnouncement: boolean;
   ignoreOsuCriteria: boolean;
+  subscribersOnly: boolean;
   viewerLuckModifier: number;
   regularLuckModifier: number;
   subscriberLuckModifier: number;
@@ -26,6 +27,7 @@ export type GiveawaySettingsInput = {
   uniqueWinners: boolean;
   chatAnnouncement: boolean;
   ignoreOsuCriteria: boolean;
+  subscribersOnly: boolean;
   viewerLuckModifier: number;
   regularLuckModifier: number;
   subscriberLuckModifier: number;
@@ -56,10 +58,11 @@ export type Entrant = {
   top_play_pp: number | null;
   top_play_sr: number | null;
   linked: boolean;
+  is_subscriber: boolean;
 };
 
 const SETTINGS_COLUMNS =
-  "trigger_word, entries_open, entries_session, remove_spammers, unique_winners, chat_announcement, ignore_osu_criteria, viewer_luck_modifier, regular_luck_modifier, subscriber_luck_modifier, vip_luck_modifier, moderator_luck_modifier, regulars, chat_capture_draw_id, chat_capture_twitch_id, chat_capture_until";
+  "trigger_word, entries_open, entries_session, remove_spammers, unique_winners, chat_announcement, ignore_osu_criteria, subscribers_only, viewer_luck_modifier, regular_luck_modifier, subscriber_luck_modifier, vip_luck_modifier, moderator_luck_modifier, regulars, chat_capture_draw_id, chat_capture_twitch_id, chat_capture_until";
 
 type SettingsRow = {
   trigger_word: string;
@@ -69,6 +72,7 @@ type SettingsRow = {
   unique_winners: boolean;
   chat_announcement: boolean;
   ignore_osu_criteria: boolean;
+  subscribers_only: boolean;
   viewer_luck_modifier: number | string;
   regular_luck_modifier: number | string;
   subscriber_luck_modifier: number | string;
@@ -89,6 +93,7 @@ function toEntrySettings(data: SettingsRow): EntrySettings {
     uniqueWinners: data.unique_winners,
     chatAnnouncement: data.chat_announcement,
     ignoreOsuCriteria: data.ignore_osu_criteria,
+    subscribersOnly: data.subscribers_only,
     viewerLuckModifier: Number(data.viewer_luck_modifier),
     regularLuckModifier: Number(data.regular_luck_modifier),
     subscriberLuckModifier: Number(data.subscriber_luck_modifier),
@@ -146,6 +151,7 @@ export async function updateGiveawaySettings(streamerId: string, input: Giveaway
       unique_winners: input.uniqueWinners,
       chat_announcement: input.chatAnnouncement,
       ignore_osu_criteria: input.ignoreOsuCriteria,
+      subscribers_only: input.subscribersOnly,
       viewer_luck_modifier: input.viewerLuckModifier,
       regular_luck_modifier: input.regularLuckModifier,
       subscriber_luck_modifier: input.subscriberLuckModifier,
@@ -227,7 +233,7 @@ export async function getEntrants(streamerId: string, known?: EntrySettings): Pr
   const { data, error } = await db
     .from("entries")
     .select(
-      "participant_id, twitch_id, twitch_login, twitch_display_name, participants(osu_username, osu_stats(global_rank, country_rank, country_code, pp, accuracy, playcount, top_play_pp, top_play_sr))",
+      "participant_id, twitch_id, twitch_login, twitch_display_name, is_subscriber, participants(osu_username, osu_stats(global_rank, country_rank, country_code, pp, accuracy, playcount, top_play_pp, top_play_sr))",
     )
     .eq("streamer_id", streamerId)
     .eq("session", settings.entriesSession);
@@ -255,6 +261,7 @@ export async function getEntrants(streamerId: string, known?: EntrySettings): Pr
       top_play_pp: stats?.top_play_pp ?? null,
       top_play_sr: stats?.top_play_sr ?? null,
       linked: !!row.participant_id,
+      is_subscriber: !!row.is_subscriber,
     };
   });
 }

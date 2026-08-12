@@ -98,7 +98,10 @@ export default async function AdminPage({
       : Promise.resolve(new Set<string>()),
   ]);
 
-  const eligible = eligibleRaw.filter((c) => !pastWinnerIds.has(c.twitchId));
+  const subscriberTwitchIds = new Set(entrants.filter((e) => e.is_subscriber).map((e) => e.twitch_id));
+  const eligible = eligibleRaw
+    .filter((c) => !pastWinnerIds.has(c.twitchId))
+    .filter((c) => !entrySettings.subscribersOnly || subscriberTwitchIds.has(c.twitchId));
 
   let chatParentHost = "localhost";
   try {
@@ -188,6 +191,15 @@ export default async function AdminPage({
                     </span>
                   </summary>
 
+                  <div className="mt-2 border-b border-white/10">
+                    <ToggleField
+                      name="subscribersOnly"
+                      label="Subscribers Only"
+                      description="Only entrants who were subscribers when they entered can win."
+                      defaultChecked={entrySettings.subscribersOnly}
+                    />
+                  </div>
+
                   <p className="mt-3 text-xs text-zinc-500">
                     How many tickets someone gets. A viewer with 1 and a subscriber with 5 means
                     the subscriber is five times as likely — not guaranteed to win. When several
@@ -244,16 +256,14 @@ export default async function AdminPage({
                   </div>
                 </details>
 
-                <label className="mt-4 flex items-center gap-2 border-t border-white/10 pt-4 text-xs text-zinc-400">
-                  <input
-                    type="checkbox"
+                <div className="mt-4 border-t border-white/10 pt-2">
+                  <ToggleField
                     name="ignoreOsuCriteria"
-                    id="ignoreOsuCriteria"
+                    label="Ignore osu! Criteria"
+                    description="Pick from anyone who typed the keyword, even without a linked account."
                     defaultChecked={entrySettings.ignoreOsuCriteria}
-                    className="h-4 w-4 rounded border-white/20 bg-white/5"
                   />
-                  Ignore osu! criteria — pick from anyone who typed the keyword, even without a linked account
-                </label>
+                </div>
 
                 <div className="mt-4 flex items-center justify-between">
                   <p className="text-sm text-zinc-400">

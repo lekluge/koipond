@@ -148,9 +148,12 @@ export async function pickWinner(
   ]);
 
   let candidates = candidatesRaw;
+  if (settings.subscribersOnly) {
+    candidates = candidates.filter((c) => flags.get(c.twitchId)?.isSubscriber);
+  }
   if (settings.uniqueWinners) {
     const pastWinners = await getPastWinnerIds(streamerId, settings.entriesSession);
-    candidates = candidatesRaw.filter((c) => !pastWinners.has(c.twitchId));
+    candidates = candidates.filter((c) => !pastWinners.has(c.twitchId));
   }
 
   if (candidates.length === 0) {
