@@ -45,8 +45,15 @@ The demo store lives in the memory of the running dev server and is not meant fo
 
 ## What it does
 
+- **Two giveaway types** — the settings panel starts by picking one, then shows only that one's
+  settings.
 - **Keyword entries** — every chat message is checked against the channel's trigger word.
   Optionally requires an exact match, so people can't sneak extra text into an entry.
+- **Number guess** — the app draws a secret number from a range you set. Chat guesses with plain
+  numbers, and the first correct one wins immediately and closes the round. The number is never
+  sent to a browser, not even the dashboard's, so showing your dashboard on stream gives nothing
+  away. Two people guessing right in the same moment can't both win: the winning claim is the
+  same UPDATE that clears the number, so Postgres settles it.
 - **osu! criteria** — draw only from players within a rank, pp, accuracy, playcount, top-play
   or country range. Rank-digit presets are built in, custom presets can be saved per channel.
   Criteria can also be ignored entirely to draw from everyone who typed the keyword.

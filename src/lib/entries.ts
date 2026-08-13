@@ -1,9 +1,15 @@
 import "server-only";
+import { randomInt } from "crypto";
 import { supabaseAdmin } from "@/lib/supabaseServer";
 import { ensureSettingsRow } from "@/lib/streamers";
 
+export type DrawMode = "keyword" | "number";
+
 export type EntrySettings = {
   triggerWord: string;
+  drawMode: DrawMode;
+  numberMin: number;
+  numberMax: number;
   entriesOpen: boolean;
   entriesSession: number;
   removeSpammers: boolean;
@@ -23,6 +29,9 @@ export type EntrySettings = {
 
 export type GiveawaySettingsInput = {
   triggerWord: string;
+  drawMode: DrawMode;
+  numberMin: number;
+  numberMax: number;
   removeSpammers: boolean;
   uniqueWinners: boolean;
   chatAnnouncement: boolean;
@@ -35,6 +44,12 @@ export type GiveawaySettingsInput = {
   moderatorLuckModifier: number;
   regulars: string;
 };
+
+function matchesKeyword(messageText: string, settings: EntrySettings): boolean {
+  const text = messageText.trim().toLowerCase();
+  const keyword = settings.triggerWord.trim().toLowerCase();
+  return settings.removeSpammers ? text === keyword : text.includes(keyword);
+}
 
 function parseRegulars(raw: string): string[] {
   return raw
@@ -62,10 +77,13 @@ export type Entrant = {
 };
 
 const SETTINGS_COLUMNS =
-  "trigger_word, entries_open, entries_session, remove_spammers, unique_winners, chat_announcement, ignore_osu_criteria, subscribers_only, viewer_luck_modifier, regular_luck_modifier, subscriber_luck_modifier, vip_luck_modifier, moderator_luck_modifier, regulars, chat_capture_draw_id, chat_capture_twitch_id, chat_capture_until";
+  "trigger_word, draw_mode, number_min, number_max, entries_open, entries_session, remove_spammers, unique_winners, chat_announcement, ignore_osu_criteria, subscribers_only, viewer_luck_modifier, regular_luck_modifier, subscriber_luck_modifier, vip_luck_modifier, moderator_luck_modifier, regulars, chat_capture_draw_id, chat_capture_twitch_id, chat_capture_until";
 
 type SettingsRow = {
   trigger_word: string;
+  draw_mode: DrawMode;
+  number_min: number;
+  number_max: number;
   entries_open: boolean;
   entries_session: number;
   remove_spammers: boolean;
@@ -87,6 +105,9 @@ type SettingsRow = {
 function toEntrySettings(data: SettingsRow): EntrySettings {
   return {
     triggerWord: data.trigger_word,
+    drawMode: data.draw_mode,
+    numberMin: data.number_min,
+    numberMax: data.number_max,
     entriesOpen: data.entries_open,
     entriesSession: data.entries_session,
     removeSpammers: data.remove_spammers,
@@ -143,10 +164,20 @@ export async function setTriggerWord(streamerId: string, word: string) {
 export async function updateGiveawaySettings(streamerId: string, input: GiveawaySettingsInput) {
   const db = supabaseAdmin();
   await ensureSettingsRow(streamerId);
+
+  const current = await getEntrySettings(streamerId);
+  const rangeChanged = current.numberMin !== input.numberMin || current.numberMax !== input.numberMax;
+  const closeRound = current.drawMode !== input.drawMode && current.entriesOpen;
+  const redraw = !closeRound && rangeChanged && current.entriesOpen && input.drawMode === "number";
+
   const { error } = await db
     .from("settings")
     .update({
+      ...(rangeChanged ? { number_target: null, number_drawn_at: null } : {}),
       trigger_word: input.triggerWord.trim() || "!join",
+      draw_mode: input.drawMode,
+      number_min: input.numberMin,
+      number_max: input.numberMax,
       remove_spammers: input.removeSpammers,
       unique_winners: input.uniqueWinners,
       chat_announcement: input.chatAnnouncement,
@@ -161,6 +192,54 @@ export async function updateGiveawaySettings(streamerId: string, input: Giveaway
     })
     .eq("streamer_id", streamerId);
   if (error) throw error;
+
+  if (closeRound) await stopEntries(streamerId);
+  else if (redraw) await drawSecretNumber(streamerId);
+}
+
+export async function drawSecretNumber(streamerId: string): Promise<{ min: number; max: number }> {
+  const db = supabaseAdmin();
+  const settings = await getEntrySettings(streamerId);
+  const min = Math.min(settings.numberMin, settings.numberMax);
+  const max = Math.max(settings.numberMin, settings.numberMax);
+  const target = randomInt(min, max + 1);
+
+  const { error } = await db
+    .from("settings")
+    .update({ number_target: target, number_drawn_at: new Date().toISOString() })
+    .eq("streamer_id", streamerId);
+  if (error) throw error;
+  return { min, max };
+}
+
+export async function clearSecretNumber(streamerId: string) {
+  const { error } = await supabaseAdmin()
+    .from("settings")
+    .update({ number_target: null, number_drawn_at: null })
+    .eq("streamer_id", streamerId);
+  if (error) throw error;
+}
+
+export async function claimSecretNumber(streamerId: string, guess: number): Promise<number | null> {
+  const { data, error } = await supabaseAdmin()
+    .from("settings")
+    .update({ number_target: null, number_drawn_at: null })
+    .eq("streamer_id", streamerId)
+    .eq("number_target", guess)
+    .eq("entries_open", true)
+    .select("entries_session")
+    .maybeSingle();
+  if (error) throw error;
+  return data ? data.entries_session : null;
+}
+
+export function parseGuess(text: string, min: number, max: number): number | null {
+  const trimmed = text.trim();
+  const value = Number(trimmed);
+  const low = Math.min(min, max);
+  const high = Math.max(min, max);
+  if (!/^-?\d{1,9}$/.test(trimmed)) return null;
+  return value >= low && value <= high ? value : null;
 }
 
 async function setEntriesOpen(streamerId: string, open: boolean) {
@@ -175,10 +254,13 @@ async function setEntriesOpen(streamerId: string, open: boolean) {
 
 export async function startEntries(streamerId: string) {
   await setEntriesOpen(streamerId, true);
+  const settings = await getEntrySettings(streamerId);
+  if (settings.drawMode === "number") await drawSecretNumber(streamerId);
 }
 
 export async function stopEntries(streamerId: string) {
   await setEntriesOpen(streamerId, false);
+  await clearSecretNumber(streamerId);
 }
 
 export async function tryAddEntry(
@@ -194,9 +276,10 @@ export async function tryAddEntry(
   const settings = known ?? (await getEntrySettings(streamerId));
   if (!settings.entriesOpen) return false;
 
-  const text = messageText.trim().toLowerCase();
-  const keyword = settings.triggerWord.trim().toLowerCase();
-  const isMatch = settings.removeSpammers ? text === keyword : text.includes(keyword);
+  const isMatch =
+    settings.drawMode === "number"
+      ? parseGuess(messageText, settings.numberMin, settings.numberMax) !== null
+      : matchesKeyword(messageText, settings);
   if (!isMatch) return false;
 
   const { data: participant } = await db

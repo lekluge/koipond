@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { env } from "@/lib/env";
 import { isDuplicateMessage, isFreshMessage, verifyEventSubSignature } from "@/lib/eventsubVerify";
 import { sendTwitchChatMessage } from "@/lib/twitch";
-import { loadCriteria, pickWinner } from "@/lib/draw";
-import { getEntrySettings, tryAddEntry } from "@/lib/entries";
+import { loadCriteria, pickWinner, recordNumberWinner } from "@/lib/draw";
+import { claimSecretNumber, getEntrySettings, parseGuess, tryAddEntry } from "@/lib/entries";
 import { captureWinnerMessage } from "@/lib/winnerChat";
 import { broadcastToStreamer } from "@/lib/realtimeBroadcast";
 import { getStreamerByTwitchId } from "@/lib/streamers";
@@ -115,6 +115,35 @@ export async function POST(req: NextRequest) {
       console.error("Entry handling failed", err);
     }
 
+    if (settings.drawMode === "number" && settings.entriesOpen) {
+      try {
+        const guess = parseGuess(rawText, settings.numberMin, settings.numberMax);
+        const isSubscriber = (event.badges ?? []).some(
+          (b) => b.set_id === "subscriber" || b.set_id === "founder",
+        );
+
+        if (guess !== null && (!settings.subscribersOnly || isSubscriber)) {
+          const session = await claimSecretNumber(streamer.id, guess);
+          if (session !== null) {
+            const { osuUsername } = await recordNumberWinner(streamer.id, session, {
+              twitchId: event.chatter_user_id,
+              twitchLogin: event.chatter_user_login,
+              twitchDisplayName: event.chatter_user_name,
+            });
+
+            if (settings.chatAnnouncement) {
+              await sendTwitchChatMessage(
+                event.broadcaster_user_id,
+                `🎉 ${event.chatter_user_name} guessed ${guess} and wins!${osuUsername ? ` (osu! ${osuUsername})` : ""}`,
+              );
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Number guess handling failed", err);
+      }
+    }
+
     try {
       const captured = await captureWinnerMessage(streamer.id, settings, event.chatter_user_id, rawText);
       if (captured) await broadcastToStreamer(streamer.id, "winner-chat");
@@ -124,6 +153,14 @@ export async function POST(req: NextRequest) {
 
     if (text.startsWith("!pickwinner") && isAuthorized(event, streamer.twitchId)) {
       try {
+        if (settings.drawMode === "number") {
+          await sendTwitchChatMessage(
+            event.broadcaster_user_id,
+            "This channel is running a number guess — the winner is whoever guesses the number first.",
+          );
+          return new NextResponse(null, { status: 204 });
+        }
+
         const criteria = await loadCriteria(streamer.id);
         const { winner } = await pickWinner(
           streamer.id,

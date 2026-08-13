@@ -3,7 +3,8 @@ import { getSession } from "@/lib/session";
 import { getSessionStreamer, mayRegisterAsStreamer } from "@/lib/streamers";
 import { findEligibleParticipants, getDrawHistory, getPastWinnerIds, loadCriteria, type DrawCriteria } from "@/lib/draw";
 import { listPresets } from "@/lib/presets";
-import { getEntrants, getEntrySettings } from "@/lib/entries";
+import { getEntrants, getEntrySettings, type EntrySettings } from "@/lib/entries";
+import { DrawModeStages } from "./DrawModeStages";
 import { RankPresetButtons, ApplyPresetButton } from "./PresetControls";
 import { ChatConnectionStatus } from "./ChatConnectionStatus";
 import { ChatPanel } from "./ChatPanel";
@@ -152,130 +153,39 @@ export default async function AdminPage({
                 <button type="submit" className="hidden" tabIndex={-1} aria-hidden />
                 <h2 className="font-semibold text-zinc-100">Configure the settings for the giveaway.</h2>
 
-                <div className="mt-4 flex flex-col gap-1">
-                  <span className="text-sm font-medium text-zinc-100">Keyword</span>
-                  <p className="text-xs text-zinc-500">The phrase that users must type to enter the giveaway.</p>
-                  <input
-                    name="triggerWord"
-                    defaultValue={entrySettings.triggerWord}
-                    className={inputClass + " mt-1"}
-                  />
-                </div>
-
-                <div className="mt-4 divide-y divide-white/10 border-t border-white/10">
-                  <ToggleField
-                    name="removeSpammers"
-                    label="Remove Spammers"
-                    description="Require an exact keyword match — messages with extra text won't count."
-                    defaultChecked={entrySettings.removeSpammers}
-                  />
-                  <ToggleField
-                    name="uniqueWinners"
-                    label="Unique Winners"
-                    description="Past winners won't be picked again."
-                    defaultChecked={entrySettings.uniqueWinners}
-                  />
-                  <ToggleField
-                    name="chatAnnouncement"
-                    label="Chat Announcement"
-                    description="Announce the winner in chat when picked from the dashboard."
-                    defaultChecked={entrySettings.chatAnnouncement}
-                  />
-                </div>
-
-                <details className="group mt-4 border-t border-white/10 pt-4">
-                  <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-medium text-zinc-200 [&::-webkit-details-marker]:hidden">
-                    <span>Advanced Settings</span>
-                    <span className="text-zinc-500 transition group-open:rotate-180" aria-hidden>
-                      ⌄
-                    </span>
-                  </summary>
-
-                  <div className="mt-2 border-b border-white/10">
-                    <ToggleField
-                      name="subscribersOnly"
-                      label="Subscribers Only"
-                      description="Only entrants who were subscribers when they entered can win."
-                      defaultChecked={entrySettings.subscribersOnly}
-                    />
-                  </div>
-
-                  <p className="mt-3 text-xs text-zinc-500">
-                    How many tickets someone gets. A viewer with 1 and a subscriber with 5 means
-                    the subscriber is five times as likely — not guaranteed to win. When several
-                    apply to the same person, the <span className="text-zinc-300">highest</span>{" "}
-                    one counts; they are not multiplied.
-                  </p>
-
-                  <div className="mt-2 flex flex-col divide-y divide-white/10">
-                    <LuckModifierField label="Viewer Luck Modifier" name="viewerLuckModifier" defaultValue={entrySettings.viewerLuckModifier} />
-                    <LuckModifierField label="Regular Luck Modifier" name="regularLuckModifier" defaultValue={entrySettings.regularLuckModifier} />
-                    <LuckModifierField label="Subscriber Luck Modifier" name="subscriberLuckModifier" defaultValue={entrySettings.subscriberLuckModifier} />
-                    <LuckModifierField label="VIP Luck Modifier" name="vipLuckModifier" defaultValue={entrySettings.vipLuckModifier} />
-                    <LuckModifierField label="Moderator Luck Modifier" name="moderatorLuckModifier" defaultValue={entrySettings.moderatorLuckModifier} />
-                  </div>
-
-                  <div className="mt-3 flex flex-col gap-1">
-                    <span className="text-sm font-medium text-zinc-100">Regulars</span>
-                    <p className="text-xs text-zinc-500">
-                      One Twitch username per line. Used by the Regular Luck Modifier — Twitch has
-                      no built-in &quot;regular&quot; status, so this list is managed manually.
-                    </p>
-                    <textarea
-                      name="regulars"
-                      rows={3}
-                      defaultValue={entrySettings.regulars}
-                      className={inputClass + " mt-1 resize-y"}
-                    />
-                  </div>
-                </details>
-
-                <details className="group mt-4 border-t border-white/10 pt-4">
-                  <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-medium text-zinc-200 [&::-webkit-details-marker]:hidden">
-                    <span>osu! Criteria</span>
-                    <span className="text-zinc-500 transition group-open:rotate-180" aria-hidden>
-                      ⌄
-                    </span>
-                  </summary>
-
-                  <div className="mt-4 flex flex-col gap-4">
-                    <div className="flex flex-col gap-1">
-                      <span className={labelClass}>Rank presets</span>
-                      <RankPresetButtons />
+                <DrawModeStages
+                  defaultMode={entrySettings.drawMode}
+                  keyword={{
+                    top: <KeywordEntrySettings entrySettings={entrySettings} />,
+                    bottom: (
+                      <KeywordDrawSettings
+                        entrySettings={entrySettings}
+                        criteria={criteria}
+                        eligibleCount={eligible.length}
+                      />
+                    ),
+                  }}
+                  number={{ top: <NumberRangeSettings entrySettings={entrySettings} /> }}
+                  common={
+                    <div className="divide-y divide-white/10">
+                      <ToggleField
+                        name="subscribersOnly"
+                        label="Subscribers Only"
+                        description="Only subscribers can win — in a number guess, a non-subscriber's correct guess doesn't count."
+                        defaultChecked={entrySettings.subscribersOnly}
+                      />
+                      <ToggleField
+                        name="chatAnnouncement"
+                        label="Chat Announcement"
+                        description="Announce the winner in chat when they are picked."
+                        defaultChecked={entrySettings.chatAnnouncement}
+                      />
                     </div>
+                  }
+                />
 
-                    <RangeField label="Global Rank" minName="globalRankMin" maxName="globalRankMax" criteria={criteria} minKey="globalRankMin" maxKey="globalRankMax" />
-                    <RangeField label="Country Rank" minName="countryRankMin" maxName="countryRankMax" criteria={criteria} minKey="countryRankMin" maxKey="countryRankMax" />
-                    <RangeField label="PP" minName="ppMin" maxName="ppMax" criteria={criteria} minKey="ppMin" maxKey="ppMax" />
-                    <RangeField label="Accuracy (%)" minName="accuracyMin" maxName="accuracyMax" criteria={criteria} minKey="accuracyMin" maxKey="accuracyMax" />
-
-                    <Field label="Country Code (e.g. DE)" name="countryCode" defaultValue={criteria.countryCode ?? ""} />
-                    <Field label="Min. Playcount" name="playcountMin" defaultValue={criteria.playcountMin ?? ""} type="number" />
-                    <Field label="Min. Top-Play Star Rating" name="topPlaySrMin" defaultValue={criteria.topPlaySrMin ?? ""} type="number" step="0.1" />
-                    <Field label="Min. Top-Play PP" name="topPlayPpMin" defaultValue={criteria.topPlayPpMin ?? ""} type="number" />
-                  </div>
-                </details>
-
-                <div className="mt-4 border-t border-white/10 pt-2">
-                  <ToggleField
-                    name="ignoreOsuCriteria"
-                    label="Ignore osu! Criteria"
-                    description="Pick from anyone who typed the keyword, even without a linked account."
-                    defaultChecked={entrySettings.ignoreOsuCriteria}
-                  />
-                </div>
-
-                <div className="mt-4 flex items-center justify-between">
-                  <p className="text-sm text-zinc-400">
-                    <span className="font-semibold text-zinc-100">
-                      <LiveEligibleCount initialCount={eligible.length} />
-                    </span>{" "}
-                    eligible
-                  </p>
-                  <div className="flex flex-wrap items-center justify-end gap-3">
-                    <SettingsAutoSave formId="criteria-form" />
-                    <PickWinnerButton />
-                  </div>
+                <div className="mt-4 flex justify-end border-t border-white/10 pt-3">
+                  <SettingsAutoSave formId="criteria-form" />
                 </div>
               </form>
 
@@ -331,7 +241,7 @@ export default async function AdminPage({
 
           <section className={cardClass}>
             <h2 className="mb-3 flex items-center gap-2 font-semibold text-zinc-100">
-              <span aria-hidden>📜</span> History
+              History
             </h2>
             <ul className="flex flex-col gap-2">
               {history.map((draw) => {
@@ -354,7 +264,7 @@ export default async function AdminPage({
 
           <section className={cardClass + " text-sm text-zinc-400"}>
             <h2 className="mb-2 flex items-center gap-2 font-semibold text-zinc-100">
-              <span aria-hidden>🤖</span> Bot &amp; overlay
+              Bot &amp; overlay
             </h2>
             <p className="mb-3">
               The giveaway bot is run by this app — you don&apos;t link an account of your own and
@@ -416,6 +326,169 @@ export default async function AdminPage({
         </EntriesLiveProvider>
       </main>
       <SourceLink />
+    </>
+  );
+}
+
+function KeywordEntrySettings({ entrySettings }: { entrySettings: EntrySettings }) {
+  return (
+    <>
+      <div className="mt-3 flex flex-col gap-1">
+        <span className="text-sm font-medium text-zinc-100">Keyword</span>
+        <p className="text-xs text-zinc-500">The phrase that users must type to enter the giveaway.</p>
+        <input name="triggerWord" defaultValue={entrySettings.triggerWord} className={inputClass + " mt-1"} />
+      </div>
+
+      <div className="mt-4 divide-y divide-white/10 border-t border-white/10">
+        <ToggleField
+          name="removeSpammers"
+          label="Remove Spammers"
+          description="Require an exact keyword match — messages with extra text won't count."
+          defaultChecked={entrySettings.removeSpammers}
+        />
+        <ToggleField
+          name="uniqueWinners"
+          label="Unique Winners"
+          description="Past winners won't be picked again."
+          defaultChecked={entrySettings.uniqueWinners}
+        />
+      </div>
+    </>
+  );
+}
+
+/** Everything about how the winner is drawn — sits below the shared toggles. */
+function KeywordDrawSettings({
+  entrySettings,
+  criteria,
+  eligibleCount,
+}: {
+  entrySettings: EntrySettings;
+  criteria: DrawCriteria;
+  eligibleCount: number;
+}) {
+  return (
+    <>
+      <details className="group mt-4 border-t border-white/10 pt-4">
+        <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-medium text-zinc-200 [&::-webkit-details-marker]:hidden">
+          <span>osu! Criteria</span>
+          <span className="text-zinc-500 transition group-open:rotate-180" aria-hidden>
+            ⌄
+          </span>
+        </summary>
+
+        <div className="mt-4 flex flex-col gap-4">
+          <div className="flex flex-col gap-1">
+            <span className={labelClass}>Rank presets</span>
+            <RankPresetButtons />
+          </div>
+
+          <RangeField label="Global Rank" minName="globalRankMin" maxName="globalRankMax" criteria={criteria} minKey="globalRankMin" maxKey="globalRankMax" />
+          <RangeField label="Country Rank" minName="countryRankMin" maxName="countryRankMax" criteria={criteria} minKey="countryRankMin" maxKey="countryRankMax" />
+          <RangeField label="PP" minName="ppMin" maxName="ppMax" criteria={criteria} minKey="ppMin" maxKey="ppMax" />
+          <RangeField label="Accuracy (%)" minName="accuracyMin" maxName="accuracyMax" criteria={criteria} minKey="accuracyMin" maxKey="accuracyMax" />
+
+          <Field label="Country Code (e.g. DE)" name="countryCode" defaultValue={criteria.countryCode ?? ""} />
+          <Field label="Min. Playcount" name="playcountMin" defaultValue={criteria.playcountMin ?? ""} type="number" />
+          <Field label="Min. Top-Play Star Rating" name="topPlaySrMin" defaultValue={criteria.topPlaySrMin ?? ""} type="number" step="0.1" />
+          <Field label="Min. Top-Play PP" name="topPlayPpMin" defaultValue={criteria.topPlayPpMin ?? ""} type="number" />
+        </div>
+      </details>
+
+      <div className="mt-4 border-t border-white/10 pt-2">
+        <ToggleField
+          name="ignoreOsuCriteria"
+          label="Ignore osu! Criteria"
+          description="Pick from anyone who typed the keyword, even without a linked account."
+          defaultChecked={entrySettings.ignoreOsuCriteria}
+        />
+      </div>
+      <details className="group mt-4 border-t border-white/10 pt-4">
+        <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-medium text-zinc-200 [&::-webkit-details-marker]:hidden">
+          <span>Advanced Settings</span>
+          <span className="text-zinc-500 transition group-open:rotate-180" aria-hidden>
+            ⌄
+          </span>
+        </summary>
+
+        <p className="mt-3 text-xs text-zinc-500">
+          How many tickets someone gets. A viewer with 1 and a subscriber with 5 means the
+          subscriber is five times as likely — not guaranteed to win. When several apply to the
+          same person, the <span className="text-zinc-300">highest</span> one counts; they are not
+          multiplied.
+        </p>
+
+        <div className="mt-2 flex flex-col divide-y divide-white/10">
+          <LuckModifierField label="Viewer Luck Modifier" name="viewerLuckModifier" defaultValue={entrySettings.viewerLuckModifier} />
+          <LuckModifierField label="Regular Luck Modifier" name="regularLuckModifier" defaultValue={entrySettings.regularLuckModifier} />
+          <LuckModifierField label="Subscriber Luck Modifier" name="subscriberLuckModifier" defaultValue={entrySettings.subscriberLuckModifier} />
+          <LuckModifierField label="VIP Luck Modifier" name="vipLuckModifier" defaultValue={entrySettings.vipLuckModifier} />
+          <LuckModifierField label="Moderator Luck Modifier" name="moderatorLuckModifier" defaultValue={entrySettings.moderatorLuckModifier} />
+        </div>
+
+        <div className="mt-3 flex flex-col gap-1">
+          <span className="text-sm font-medium text-zinc-100">Regulars</span>
+          <p className="text-xs text-zinc-500">
+            One Twitch username per line. Used by the Regular Luck Modifier — Twitch has no
+            built-in &quot;regular&quot; status, so this list is managed manually.
+          </p>
+          <textarea
+            name="regulars"
+            rows={3}
+            defaultValue={entrySettings.regulars}
+            className={inputClass + " mt-1 resize-y"}
+          />
+        </div>
+      </details>
+
+      <div className="mt-4 flex items-center justify-between">
+        <p className="text-sm text-zinc-400">
+          <span className="font-semibold text-zinc-100">
+            <LiveEligibleCount initialCount={eligibleCount} />
+          </span>{" "}
+          eligible
+        </p>
+        <PickWinnerButton />
+      </div>
+    </>
+  );
+}
+
+function NumberRangeSettings({ entrySettings }: { entrySettings: EntrySettings }) {
+  const { numberMin, numberMax } = entrySettings;
+
+  return (
+    <>
+      <p className="mt-3 text-xs text-zinc-500">
+        Opening entries draws a number from this range and keeps it to itself — it is never shown
+        here or sent to your browser. Everyone who types a plain number in chat enters, and the
+        first one to hit it wins immediately and closes the round.
+      </p>
+
+      <div className="mt-3 flex flex-col gap-1 text-sm">
+        <span className={labelClass}>Range</span>
+        <div className="flex items-center gap-2">
+          <input
+            name="numberMin"
+            type="number"
+            defaultValue={numberMin}
+            className={inputClass + " w-1/2"}
+            aria-label="Lowest possible number"
+          />
+          <span className="text-zinc-600">to</span>
+          <input
+            name="numberMax"
+            type="number"
+            defaultValue={numberMax}
+            className={inputClass + " w-1/2"}
+            aria-label="Highest possible number"
+          />
+        </div>
+        <p className="text-xs text-zinc-500">
+          Changing this during a running round draws a new number — the old one could sit outside
+          the new range, where nobody could ever guess it.
+        </p>
+      </div>
     </>
   );
 }

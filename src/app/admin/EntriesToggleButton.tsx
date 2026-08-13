@@ -10,9 +10,12 @@ export function EntriesToggleButton() {
   const [pending, startTransition] = useTransition();
 
   function toggle() {
+    const form = document.querySelector<HTMLFormElement>("#criteria-form");
+    const data = form ? new FormData(form) : null;
+
     startTransition(async () => {
       setOptimisticEntriesOpen(!entriesOpen);
-      await (entriesOpen ? stopEntriesAction() : startEntriesAction());
+      await (entriesOpen ? stopEntriesAction() : startEntriesAction(data));
     });
   }
 
