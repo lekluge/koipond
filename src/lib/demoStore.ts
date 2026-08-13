@@ -101,6 +101,7 @@ type Store = {
   entrants: DemoEntrant[];
   chatLog: DemoChatMessage[];
   numberTarget: number | null;
+  streamStartedAt: string;
 };
 
 const g = globalThis as unknown as { __demoStore?: Store };
@@ -117,6 +118,8 @@ function freshStore(): Store {
     entrants: [],
     chatLog: [],
     numberTarget: null,
+    // Backdated so the header doesn't open on "just started".
+    streamStartedAt: new Date(Date.now() - 97 * 60_000).toISOString(),
   };
 }
 
@@ -130,6 +133,29 @@ function parseRegulars(raw: string): string[] {
     .split(/[\n,]/)
     .map((s) => s.trim().toLowerCase())
     .filter(Boolean);
+}
+
+export type DemoChannelStatus = {
+  displayName: string;
+  profileImageUrl: string | null;
+  stream: { startedAt: string; title: string; gameName: string | null; viewerCount: number } | null;
+};
+export function getChannelStatus(): DemoChannelStatus {
+  const s = store();
+  if (!s.streamStartedAt) s.streamStartedAt = new Date(Date.now() - 97 * 60_000).toISOString();
+
+  const minutes = Math.floor((Date.now() - new Date(s.streamStartedAt).getTime()) / 60000);
+
+  return {
+    displayName: "KoiFishu (Demo)",
+    profileImageUrl: null,
+    stream: {
+      startedAt: s.streamStartedAt,
+      title: "RANK GUESSING UNTIL EXACTish + PROFILE REVIEW IF WRONG, SUBATHON DAY 3 | !subathon !guessing",
+      gameName: "osu!",
+      viewerCount: 420 + (minutes % 7) * 13 + Math.floor(Math.random() * 20),
+    },
+  };
 }
 
 export function getParticipants(): DemoParticipant[] {

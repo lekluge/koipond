@@ -4,6 +4,8 @@ import { getSessionStreamer, mayRegisterAsStreamer } from "@/lib/streamers";
 import { findEligibleParticipants, getDrawHistory, getPastWinnerIds, loadCriteria, type DrawCriteria } from "@/lib/draw";
 import { listPresets } from "@/lib/presets";
 import { getEntrants, getEntrySettings, type EntrySettings } from "@/lib/entries";
+import { getChannelStatus } from "@/lib/channelStatus";
+import { ChannelHeader } from "./ChannelHeader";
 import { DrawModeStages } from "./DrawModeStages";
 import { RankPresetButtons, ApplyPresetButton } from "./PresetControls";
 import { ChatConnectionStatus } from "./ChatConnectionStatus";
@@ -89,7 +91,7 @@ export default async function AdminPage({
     loadCriteria(streamer.id),
   ]);
 
-  const [eligibleRaw, history, presets, entrants, pastWinnerIds] = await Promise.all([
+  const [eligibleRaw, history, presets, entrants, pastWinnerIds, channelStatus] = await Promise.all([
     findEligibleParticipants(streamer.id, criteria, entrySettings),
     getDrawHistory(streamer.id),
     listPresets(streamer.id),
@@ -97,6 +99,7 @@ export default async function AdminPage({
     entrySettings.uniqueWinners
       ? getPastWinnerIds(streamer.id, entrySettings.entriesSession)
       : Promise.resolve(new Set<string>()),
+    getChannelStatus(streamer),
   ]);
 
   const subscriberTwitchIds = new Set(entrants.filter((e) => e.is_subscriber).map((e) => e.twitch_id));
@@ -119,12 +122,7 @@ export default async function AdminPage({
           entriesOpen={entrySettings.entriesOpen}
           entrants={entrants}
         >
-          <div>
-            <h1 className="text-2xl font-bold text-gradient">Streamer Dashboard</h1>
-            <p className="mt-1 text-sm text-zinc-500">
-              Channel: <span className="text-zinc-300">{streamer.twitchDisplayName}</span>
-            </p>
-          </div>
+          <ChannelHeader initial={channelStatus} />
 
           {error && (
             <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">

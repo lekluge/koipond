@@ -7,6 +7,8 @@ import { RANK_DIGIT_PRESETS } from "@/lib/rankPresets";
 import { TwitchOsuBadges } from "@/components/WinnerReveal";
 import { Confetti } from "@/app/admin/Confetti";
 import { DrawModeStages } from "@/app/admin/DrawModeStages";
+import { ChannelHeader } from "@/app/admin/ChannelHeader";
+import type { ChannelStatus } from "@/lib/channelStatus";
 import { BackgroundGlow, SourceLink, buttonClass, cardClass, inputClass, labelClass } from "@/components/ui";
 
 type EntryState = {
@@ -67,6 +69,9 @@ export default function DemoAdminPage() {
 
   const [winner, setWinner] = useState<DemoCandidate | null>(null);
   const [burstId, setBurstId] = useState(0);
+
+  // Placeholder only: ChannelHeader fetches the simulated channel on mount.
+  const channel: ChannelStatus = { displayName: "KoiFishu (Demo)", profileImageUrl: null, stream: null };
 
   async function refreshLive() {
     const res = await fetch("/api/demo/state");
@@ -393,13 +398,13 @@ export default function DemoAdminPage() {
       )}
 
       <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-10">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gradient">Streamer Dashboard (Demo)</h1>
-          <button onClick={reset} className="text-sm text-zinc-500 underline hover:text-zinc-300">
+        <div className="flex items-start justify-between gap-4">
+          <ChannelHeader initial={channel} endpoint="/api/demo/channel-status" />
+          <button onClick={reset} className="shrink-0 text-sm text-zinc-500 underline hover:text-zinc-300">
             Reset demo data
           </button>
         </div>
-        <p className="-mt-4 w-fit rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-xs font-medium text-amber-300">
+        <p className="-mt-2 w-fit rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-xs font-medium text-amber-300">
           DEMO — {participants.length} dummy participants, no login needed
         </p>
 
