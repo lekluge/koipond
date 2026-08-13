@@ -38,7 +38,9 @@ export default function DemoOverlayPage() {
         if (!cancelled && draw && draw.id !== lastDrawId.current) {
           lastDrawId.current = draw.id;
           if (draw.winnerTwitchDisplayName) {
-            const stats = participantsRef.current.find((p) => p.twitchDisplayName === draw.winnerTwitchDisplayName) ?? null;
+            const stats = draw.hideOsuStats
+              ? null
+              : participantsRef.current.find((p) => p.twitchDisplayName === draw.winnerTwitchDisplayName) ?? null;
             setWinner({ twitchDisplayName: draw.winnerTwitchDisplayName, osuUsername: draw.winnerOsuUsername, stats });
             setVisible(true);
             clearTimeout(hideTimer.current);

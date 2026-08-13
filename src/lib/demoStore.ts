@@ -25,6 +25,7 @@ export type DemoDraw = {
   winnerTwitchId: string | null;
   winnerTwitchDisplayName: string | null;
   winnerOsuUsername: string | null;
+  hideOsuStats: boolean;
 };
 
 export type DemoChatMessage = {
@@ -35,11 +36,18 @@ export type DemoChatMessage = {
   createdAt: string;
 };
 
+export type DemoDrawMode = "keyword" | "number";
+
 export type GiveawaySettings = {
   triggerWord: string;
+  drawMode: DemoDrawMode;
+  numberMin: number;
+  numberMax: number;
   removeSpammers: boolean;
   uniqueWinners: boolean;
   chatAnnouncement: boolean;
+  subscribersOnly: boolean;
+  hideOsuStats: boolean;
   viewerLuckModifier: number;
   regularLuckModifier: number;
   subscriberLuckModifier: number;
@@ -66,9 +74,14 @@ const INITIAL_PARTICIPANTS: DemoParticipant[] = [
 
 const DEFAULT_SETTINGS: GiveawaySettings = {
   triggerWord: "!join",
+  drawMode: "keyword",
+  numberMin: 1,
+  numberMax: 100,
   removeSpammers: true,
   uniqueWinners: false,
   chatAnnouncement: true,
+  subscribersOnly: false,
+  hideOsuStats: false,
   viewerLuckModifier: 1,
   regularLuckModifier: 1,
   subscriberLuckModifier: 1,
@@ -87,6 +100,7 @@ type Store = {
   entriesSession: number;
   entrants: DemoEntrant[];
   chatLog: DemoChatMessage[];
+  numberTarget: number | null;
 };
 
 const g = globalThis as unknown as { __demoStore?: Store };
@@ -102,6 +116,7 @@ function freshStore(): Store {
     entriesSession: 0,
     entrants: [],
     chatLog: [],
+    numberTarget: null,
   };
 }
 
@@ -161,11 +176,39 @@ export function getSettings(): GiveawaySettings {
 
 export function updateSettings(input: Partial<GiveawaySettings>) {
   const s = store();
+  const previous = s.settings;
+
+  const min = Math.min(input.numberMin ?? previous.numberMin, input.numberMax ?? previous.numberMax);
+  const max = Math.max(input.numberMin ?? previous.numberMin, input.numberMax ?? previous.numberMax);
+
   s.settings = {
-    ...s.settings,
+    ...previous,
     ...input,
-    triggerWord: (input.triggerWord ?? s.settings.triggerWord).trim() || "!join",
+    triggerWord: (input.triggerWord ?? previous.triggerWord).trim() || "!join",
+    numberMin: min,
+    numberMax: max,
   };
+
+  const modeChanged = previous.drawMode !== s.settings.drawMode;
+  const rangeChanged = previous.numberMin !== min || previous.numberMax !== max;
+
+  if (modeChanged && s.entriesOpen) stopEntries();
+  else if (rangeChanged && s.entriesOpen && s.settings.drawMode === "number") drawSecretNumber();
+  else if (rangeChanged) s.numberTarget = null;
+}
+
+function drawSecretNumber() {
+  const s = store();
+  const min = Math.min(s.settings.numberMin, s.settings.numberMax);
+  const max = Math.max(s.settings.numberMin, s.settings.numberMax);
+  s.numberTarget = min + Math.floor(Math.random() * (max - min + 1));
+}
+
+export function parseGuess(text: string, min: number, max: number): number | null {
+  const trimmed = text.trim();
+  if (!/^-?\d{1,9}$/.test(trimmed)) return null;
+  const value = Number(trimmed);
+  return value >= Math.min(min, max) && value <= Math.max(min, max) ? value : null;
 }
 
 export type EntryState = {
@@ -190,6 +233,8 @@ export function startEntries() {
   s.entriesOpen = true;
   s.entriesSession += 1;
   s.entrants = [];
+  if (s.settings.drawMode === "number") drawSecretNumber();
+  else s.numberTarget = null;
 }
 
 export function stopEntries() {
@@ -197,6 +242,7 @@ export function stopEntries() {
   s.entriesOpen = false;
   s.entriesSession += 1;
   s.entrants = [];
+  s.numberTarget = null;
 }
 
 export function simulateChatMessage(input: {
@@ -206,19 +252,27 @@ export function simulateChatMessage(input: {
   isSubscriber?: boolean;
   isVip?: boolean;
   isModerator?: boolean;
-}): boolean {
+}): { joined: boolean; winner: DemoCandidate | null } {
   const s = store();
-  if (!s.entriesOpen) return false;
+  const miss = { joined: false, winner: null };
+  if (!s.entriesOpen) return miss;
 
-  const text = input.text.trim().toLowerCase();
-  const keyword = s.settings.triggerWord.trim().toLowerCase();
-  const isMatch = s.settings.removeSpammers ? text === keyword : text.includes(keyword);
-  if (!isMatch) return false;
+  const numberMode = s.settings.drawMode === "number";
+  const guess = numberMode ? parseGuess(input.text, s.settings.numberMin, s.settings.numberMax) : null;
+
+  if (numberMode) {
+    if (guess === null) return miss;
+  } else {
+    const text = input.text.trim().toLowerCase();
+    const keyword = s.settings.triggerWord.trim().toLowerCase();
+    const isMatch = s.settings.removeSpammers ? text === keyword : text.includes(keyword);
+    if (!isMatch) return miss;
+  }
 
   let candidate: DemoCandidate | null = null;
   if (input.participantId) {
     const participant = s.participants.find((p) => p.id === input.participantId);
-    if (!participant) return false;
+    if (!participant) return miss;
     candidate = {
       twitchId: participant.id,
       twitchDisplayName: participant.twitchDisplayName,
@@ -227,7 +281,7 @@ export function simulateChatMessage(input: {
     };
   } else {
     const name = (input.guestName ?? "").trim();
-    if (!name) return false;
+    if (!name) return miss;
     candidate = { twitchId: `guest:${name.toLowerCase()}`, twitchDisplayName: name, osuUsername: null, linked: false };
   }
 
@@ -250,7 +304,54 @@ export function simulateChatMessage(input: {
   });
   s.chatLog = s.chatLog.slice(-50);
 
-  return true;
+  const wins =
+    numberMode &&
+    guess !== null &&
+    guess === s.numberTarget &&
+    (!s.settings.subscribersOnly || !!input.isSubscriber);
+
+  if (wins) {
+    s.numberTarget = null;
+    recordDraw(candidate, {}, "chat", `🎉 ${candidate.twitchDisplayName} guessed ${guess} and wins!`);
+    stopEntries();
+    return { joined: true, winner: candidate };
+  }
+
+  return { joined: true, winner: null };
+}
+
+function recordDraw(
+  winner: DemoCandidate,
+  criteria: DemoCriteria,
+  triggeredBy: "dashboard" | "chat",
+  announcement?: string,
+) {
+  const s = store();
+
+  s.draws.unshift({
+    id: String(Date.now()) + Math.random(),
+    criteria,
+    triggeredBy,
+    createdAt: new Date().toISOString(),
+    session: s.entriesSession,
+    winnerTwitchId: winner.twitchId,
+    winnerTwitchDisplayName: winner.twitchDisplayName,
+    winnerOsuUsername: winner.osuUsername,
+    hideOsuStats: s.settings.hideOsuStats,
+  });
+  s.draws = s.draws.slice(0, 20);
+
+  if (s.settings.chatAnnouncement) {
+    const osuSuffix = winner.osuUsername ? ` (osu! ${winner.osuUsername})` : "";
+    s.chatLog.push({
+      id: String(Date.now()) + Math.random(),
+      author: "t1ggy_bot",
+      text: announcement ? `${announcement}${osuSuffix}` : `🎉 Winner: ${winner.twitchDisplayName}${osuSuffix}`,
+      isBot: true,
+      createdAt: new Date().toISOString(),
+    });
+    s.chatLog = s.chatLog.slice(-50);
+  }
 }
 
 export function findEligibleCandidates(criteria: DemoCriteria, ignoreOsuCriteria: boolean): DemoCandidate[] {
@@ -300,12 +401,18 @@ export function pickWinner(
   ignoreOsuCriteria: boolean,
 ): { winner: DemoCandidate | null; candidateCount: number } {
   const s = store();
+  if (s.settings.drawMode === "number") return { winner: null, candidateCount: 0 };
+
   const candidatesRaw = findEligibleCandidates(criteria, ignoreOsuCriteria);
+  const subscriberIds = new Set(s.entrants.filter((e) => e.isSubscriber).map((e) => e.twitchId));
 
   let candidates = candidatesRaw;
+  if (s.settings.subscribersOnly) {
+    candidates = candidates.filter((c) => subscriberIds.has(c.twitchId));
+  }
   if (s.settings.uniqueWinners) {
     const pastWinners = getPastWinnerTwitchIds(s.entriesSession);
-    candidates = candidatesRaw.filter((c) => !pastWinners.has(c.twitchId));
+    candidates = candidates.filter((c) => !pastWinners.has(c.twitchId));
   }
 
   if (candidates.length === 0) {
@@ -316,30 +423,7 @@ export function pickWinner(
   const weights = candidates.map((c) => Math.max(weightFor(c, s.settings, entrantsById.get(c.twitchId)), 0));
   const winner = pickWeighted(candidates, weights);
 
-  const draw: DemoDraw = {
-    id: String(Date.now()) + Math.random(),
-    criteria,
-    triggeredBy,
-    createdAt: new Date().toISOString(),
-    session: s.entriesSession,
-    winnerTwitchId: winner.twitchId,
-    winnerTwitchDisplayName: winner.twitchDisplayName,
-    winnerOsuUsername: winner.osuUsername,
-  };
-  s.draws.unshift(draw);
-  s.draws = s.draws.slice(0, 20);
-
-  if (s.settings.chatAnnouncement) {
-    const osuSuffix = winner.osuUsername ? ` (osu! ${winner.osuUsername})` : "";
-    s.chatLog.push({
-      id: String(Date.now()) + Math.random(),
-      author: "t1ggy_bot",
-      text: `🎉 Winner: ${winner.twitchDisplayName}${osuSuffix}`,
-      isBot: true,
-      createdAt: new Date().toISOString(),
-    });
-    s.chatLog = s.chatLog.slice(-50);
-  }
+  recordDraw(winner, criteria, triggeredBy);
 
   return { winner, candidateCount: candidates.length };
 }

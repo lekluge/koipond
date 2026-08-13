@@ -24,13 +24,20 @@ export function DrawModeStages({
   keyword,
   number,
   common,
+  onModeChange,
 }: {
   defaultMode: DrawMode;
   keyword: StageSlots;
   number: StageSlots;
   common: ReactNode;
+  onModeChange?: (mode: DrawMode) => void;
 }) {
-  const [mode, setMode] = useState<DrawMode>(defaultMode);
+  const [mode, setModeState] = useState<DrawMode>(defaultMode);
+
+  const setMode = (next: DrawMode) => {
+    setModeState(next);
+    onModeChange?.(next);
+  };
   const [picking, setPicking] = useState(false);
 
   const active = MODES.find((m) => m.value === mode) ?? MODES[0];
