@@ -15,7 +15,7 @@ export default async function OverlayIndexPage() {
           <p className="mt-2 text-sm text-zinc-400">
             Every channel has its own overlay URL:{" "}
             <code className="text-zinc-300">/overlay/&lt;your-twitch-name&gt;</code>. You can copy
-            yours from the admin dashboard.
+            yours from the streamer dashboard.
           </p>
         </div>
       </main>

@@ -13,6 +13,5 @@ export async function POST(req: NextRequest) {
     isVip?: boolean;
     isModerator?: boolean;
   };
-  const joined = simulateChatMessage(body);
-  return NextResponse.json({ joined });
+  return NextResponse.json(simulateChatMessage(body));
 }

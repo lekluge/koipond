@@ -96,6 +96,37 @@ export async function getTwitchProfile(twitchUserId: string): Promise<TwitchProf
   return profile;
 }
 
+export type TwitchStream = {
+  startedAt: string;
+  title: string;
+  gameName: string | null;
+  viewerCount: number;
+};
+
+export async function getTwitchStream(twitchUserId: string): Promise<TwitchStream | null> {
+  const appToken = await getTwitchAppToken();
+  const res = await fetch(`${HELIX_URL}/streams?user_id=${encodeURIComponent(twitchUserId)}`, {
+    headers: { Authorization: `Bearer ${appToken}`, "Client-Id": env.twitchClientId },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new Error(`Twitch get stream failed: ${res.status} ${await res.text()}`);
+  }
+
+  const json = (await res.json()) as {
+    data: { started_at: string; title: string; game_name: string; viewer_count: number; type: string }[];
+  };
+  const stream = json.data?.find((s) => s.type === "live");
+  if (!stream) return null;
+
+  return {
+    startedAt: stream.started_at,
+    title: stream.title,
+    gameName: stream.game_name || null,
+    viewerCount: stream.viewer_count,
+  };
+}
+
 let appTokenCache: { token: string; expiresAt: number } | null = null;
 
 export async function getTwitchAppToken(): Promise<string> {

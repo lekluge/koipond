@@ -41,14 +41,26 @@ function criteriaFromForm(formData: FormData): DrawCriteria {
   };
 }
 
+function numberBound(formData: FormData, key: string, fallback: number): number {
+  const n = num(formData, key);
+  return n !== undefined ? Math.trunc(n) : fallback;
+}
+
 function giveawaySettingsFromForm(formData: FormData): GiveawaySettingsInput {
+  const min = numberBound(formData, "numberMin", 1);
+  const max = numberBound(formData, "numberMax", 100);
+
   return {
     triggerWord: String(formData.get("triggerWord") ?? "!join"),
+    drawMode: formData.get("drawMode") === "number" ? "number" : "keyword",
+    numberMin: Math.min(min, max),
+    numberMax: Math.max(min, max),
     removeSpammers: formData.has("removeSpammers"),
     uniqueWinners: formData.has("uniqueWinners"),
     chatAnnouncement: formData.has("chatAnnouncement"),
     ignoreOsuCriteria: formData.has("ignoreOsuCriteria"),
     subscribersOnly: formData.has("subscribersOnly"),
+    hideOsuStats: formData.has("hideOsuStats"),
     viewerLuckModifier: luckModifier(formData, "viewerLuckModifier"),
     regularLuckModifier: luckModifier(formData, "regularLuckModifier"),
     subscriberLuckModifier: luckModifier(formData, "subscriberLuckModifier"),
@@ -71,6 +83,8 @@ export async function pickWinnerAction(formData: FormData): Promise<{ winner: bo
   const streamer = await requireStreamer();
   const criteria = criteriaFromForm(formData);
   const giveawaySettings = giveawaySettingsFromForm(formData);
+
+  if (giveawaySettings.drawMode === "number") return { winner: false };
 
   const { winner } = await pickWinner(
     streamer.id,
@@ -109,8 +123,9 @@ export async function deletePresetAction(formData: FormData) {
   revalidatePath("/admin");
 }
 
-export async function startEntriesAction() {
+export async function startEntriesAction(formData: FormData | null) {
   const streamer = await requireStreamer();
+  if (formData) await updateGiveawaySettings(streamer.id, giveawaySettingsFromForm(formData));
   await startEntries(streamer.id);
   await broadcastToStreamer(streamer.id, "entries");
   revalidatePath("/admin");

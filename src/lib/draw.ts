@@ -1,6 +1,13 @@
 import "server-only";
 import { supabaseAdmin } from "@/lib/supabaseServer";
-import { getEntrantFlags, getEntrantIds, getEntrants, getEntrySettings, type EntrySettings } from "@/lib/entries";
+import {
+  getEntrantFlags,
+  getEntrantIds,
+  getEntrants,
+  getEntrySettings,
+  stopEntries,
+  type EntrySettings,
+} from "@/lib/entries";
 import { ensureSettingsRow } from "@/lib/streamers";
 import { startWinnerChatCapture } from "@/lib/winnerChat";
 import { broadcastToStreamer } from "@/lib/realtimeBroadcast";
@@ -175,6 +182,7 @@ export async function pickWinner(
       winner_twitch_display_name: winner.twitchDisplayName,
       winner_osu_username: winner.osuUsername,
       triggered_by: triggeredBy,
+      hide_osu_stats: settings.hideOsuStats,
     })
     .select("id")
     .single();
@@ -189,6 +197,50 @@ export async function pickWinner(
   await broadcastToStreamer(streamerId, "entries");
 
   return { winner, candidateCount: candidates.length };
+}
+
+export async function recordNumberWinner(
+  streamerId: string,
+  session: number,
+  guesser: { twitchId: string; twitchLogin: string; twitchDisplayName: string },
+  hideOsuStats: boolean,
+) {
+  const db = supabaseAdmin();
+
+  const { data: participant } = await db
+    .from("participants")
+    .select("id, osu_username")
+    .eq("twitch_id", guesser.twitchId)
+    .maybeSingle();
+
+  const { data: draw, error } = await db
+    .from("draws")
+    .insert({
+      streamer_id: streamerId,
+      criteria: {},
+      session,
+      winner_participant_id: participant?.id ?? null,
+      winner_twitch_id: guesser.twitchId,
+      winner_twitch_display_name: guesser.twitchDisplayName,
+      winner_osu_username: participant?.osu_username ?? null,
+      triggered_by: "chat",
+      hide_osu_stats: hideOsuStats,
+    })
+    .select("id")
+    .single();
+  if (error) throw error;
+
+  await stopEntries(streamerId);
+
+  try {
+    await startWinnerChatCapture(streamerId, draw.id, guesser.twitchId);
+  } catch (err) {
+    console.error("Arming winner chat capture failed", err);
+  }
+
+  await broadcastToStreamer(streamerId, "entries");
+
+  return { osuUsername: participant?.osu_username ?? null };
 }
 
 export async function saveCriteria(streamerId: string, criteria: DrawCriteria) {

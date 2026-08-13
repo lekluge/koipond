@@ -4,8 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import { matchesCriteria, type DemoCriteria, type DemoParticipant } from "@/lib/demoMatch";
 import type { DemoCandidate, DemoChatMessage, DemoDraw, DemoEntrant, GiveawaySettings } from "@/lib/demoStore";
 import { RANK_DIGIT_PRESETS } from "@/lib/rankPresets";
-import { ChatWindowPopup, TwitchOsuBadges } from "@/components/WinnerReveal";
+import { TwitchOsuBadges } from "@/components/WinnerReveal";
 import { Confetti } from "@/app/admin/Confetti";
+import { DrawModeStages } from "@/app/admin/DrawModeStages";
+import { ChannelHeader } from "@/app/admin/ChannelHeader";
+import type { ChannelStatus } from "@/lib/channelStatus";
 import { BackgroundGlow, SourceLink, buttonClass, cardClass, inputClass, labelClass } from "@/components/ui";
 
 type EntryState = {
@@ -32,9 +35,14 @@ export default function DemoAdminPage() {
   });
   const [settings, setSettings] = useState<GiveawaySettings>({
     triggerWord: "!join",
+    drawMode: "keyword",
+    numberMin: 1,
+    numberMax: 100,
     removeSpammers: true,
     uniqueWinners: false,
     chatAnnouncement: true,
+    subscribersOnly: false,
+    hideOsuStats: false,
     viewerLuckModifier: 1,
     regularLuckModifier: 1,
     subscriberLuckModifier: 1,
@@ -61,6 +69,9 @@ export default function DemoAdminPage() {
 
   const [winner, setWinner] = useState<DemoCandidate | null>(null);
   const [burstId, setBurstId] = useState(0);
+
+  // Placeholder only: ChannelHeader fetches the simulated channel on mount.
+  const channel: ChannelStatus = { displayName: "KoiFishu (Demo)", profileImageUrl: null, stream: null };
 
   async function refreshLive() {
     const res = await fetch("/api/demo/state");
@@ -148,15 +159,20 @@ export default function DemoAdminPage() {
     persistPresets(presets.filter((p) => p.id !== id));
   }
 
-  async function saveSettings() {
+  async function persistSettings(next: GiveawaySettings) {
+    setSettings(next);
     const res = await fetch("/api/demo/entries", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "saveSettings", settings }),
+      body: JSON.stringify({ action: "saveSettings", settings: next }),
     });
     const data = await res.json();
     setSettings(data.settings);
     setEntryState(data.entryState);
+  }
+
+  async function saveSettings() {
+    await persistSettings(settings);
   }
 
   async function pickWinner() {
@@ -219,13 +235,136 @@ export default function DemoAdminPage() {
     if (entrantMode === "participant" && !chatParticipantId) return;
     if (entrantMode === "guest" && !guestName.trim()) return;
 
-    await fetch("/api/demo/chat", {
+    const res = await fetch("/api/demo/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
+    const { winner: guessWinner } = (await res.json()) as { winner: DemoCandidate | null };
+    if (guessWinner) {
+      setWinner(guessWinner);
+      setBurstId((id) => id + 1);
+    }
     await refreshLive();
   }
+
+  const keywordDrawBlock = (
+    <>
+              <details className="group mt-4 border-t border-white/10 pt-4">
+                <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-medium text-zinc-200 [&::-webkit-details-marker]:hidden">
+                  <span>Advanced Settings</span>
+                  <span className="text-zinc-500 transition group-open:rotate-180" aria-hidden>
+                    ⌄
+                  </span>
+                </summary>
+  
+                <div className="mt-2 flex flex-col divide-y divide-white/10">
+                  <LuckModifierField
+                    label="Viewer Luck Modifier"
+                    value={settings.viewerLuckModifier}
+                    onChange={(v) => setSettings((s) => ({ ...s, viewerLuckModifier: v }))}
+                  />
+                  <LuckModifierField
+                    label="Regular Luck Modifier"
+                    value={settings.regularLuckModifier}
+                    onChange={(v) => setSettings((s) => ({ ...s, regularLuckModifier: v }))}
+                  />
+                  <LuckModifierField
+                    label="Subscriber Luck Modifier"
+                    value={settings.subscriberLuckModifier}
+                    onChange={(v) => setSettings((s) => ({ ...s, subscriberLuckModifier: v }))}
+                  />
+                  <LuckModifierField
+                    label="VIP Luck Modifier"
+                    value={settings.vipLuckModifier}
+                    onChange={(v) => setSettings((s) => ({ ...s, vipLuckModifier: v }))}
+                  />
+                  <LuckModifierField
+                    label="Moderator Luck Modifier"
+                    value={settings.moderatorLuckModifier}
+                    onChange={(v) => setSettings((s) => ({ ...s, moderatorLuckModifier: v }))}
+                  />
+                </div>
+  
+                <div className="mt-3 flex flex-col gap-1">
+                  <span className="text-sm font-medium text-zinc-100">Regulars</span>
+                  <p className="text-xs text-zinc-500">
+                    One Twitch username per line. Used by the Regular Luck Modifier — Twitch has
+                    no built-in &quot;regular&quot; status, so this list is managed manually.
+                  </p>
+                  <textarea
+                    value={settings.regulars}
+                    onChange={(e) => setSettings((s) => ({ ...s, regulars: e.target.value }))}
+                    rows={3}
+                    className={inputClass + " mt-1 resize-y"}
+                  />
+                </div>
+              </details>
+  
+              <details open className="group mt-4 border-t border-white/10 pt-4">
+                <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-medium text-zinc-200 [&::-webkit-details-marker]:hidden">
+                  <span>osu! Criteria</span>
+                  <span className="text-zinc-500 transition group-open:rotate-180" aria-hidden>
+                    ⌄
+                  </span>
+                </summary>
+  
+                <div className="mt-4 flex flex-col gap-4">
+                  <div className="flex flex-col gap-1">
+                    <span className={labelClass}>Rank presets</span>
+                    <div className="flex flex-wrap gap-2">
+                      {RANK_DIGIT_PRESETS.map((preset) => (
+                        <button
+                          key={preset.id}
+                          onClick={() => applyRankPreset(preset.min, preset.max)}
+                          className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-zinc-300 transition hover:border-purple-500/40 hover:bg-white/10"
+                        >
+                          {preset.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+  
+                  <RangeField label="Global Rank" onMin={(v) => setNum("globalRankMin", v)} onMax={(v) => setNum("globalRankMax", v)} min={criteria.globalRankMin} max={criteria.globalRankMax} />
+                  <RangeField label="Country Rank" onMin={(v) => setNum("countryRankMin", v)} onMax={(v) => setNum("countryRankMax", v)} min={criteria.countryRankMin} max={criteria.countryRankMax} />
+                  <RangeField label="PP" onMin={(v) => setNum("ppMin", v)} onMax={(v) => setNum("ppMax", v)} min={criteria.ppMin} max={criteria.ppMax} />
+                  <RangeField label="Accuracy (%)" onMin={(v) => setNum("accuracyMin", v)} onMax={(v) => setNum("accuracyMax", v)} min={criteria.accuracyMin} max={criteria.accuracyMax} />
+  
+                  <Field
+                    label="Country Code (e.g. DE)"
+                    value={criteria.countryCode ?? ""}
+                    onChange={(v) => setCriteria((c) => ({ ...c, countryCode: v.trim() === "" ? undefined : v.trim().toUpperCase() }))}
+                  />
+                  <NumField label="Min. Playcount" value={criteria.playcountMin} onChange={(v) => setNum("playcountMin", v)} />
+                  <NumField label="Min. Top-Play Star Rating" value={criteria.topPlaySrMin} onChange={(v) => setNum("topPlaySrMin", v)} step="0.1" />
+                  <NumField label="Min. Top-Play PP" value={criteria.topPlayPpMin} onChange={(v) => setNum("topPlayPpMin", v)} />
+                </div>
+              </details>
+  
+              <label className="mt-4 flex items-center gap-2 border-t border-white/10 pt-4 text-xs text-zinc-400">
+                <input
+                  type="checkbox"
+                  checked={ignoreOsuCriteria}
+                  onChange={(e) => setIgnoreOsuCriteria(e.target.checked)}
+                  className="h-4 w-4 rounded border-white/20 bg-white/5"
+                />
+                Ignore osu! criteria — pick from anyone who typed the keyword, even without a linked account
+              </label>
+  
+              <div className="mt-4 flex items-center justify-between">
+                <p className="text-sm text-zinc-400">
+                  <span className="font-semibold text-zinc-100">{eligible.length}</span> eligible
+                </p>
+                <button
+                  onClick={pickWinner}
+                  disabled={eligible.length === 0 || picking}
+                  className={buttonClass("primary")}
+                >
+                  {picking ? "Picking…" : "Pick Winner"}
+                </button>
+              </div>
+    </>
+  );
 
   return (
     <>
@@ -237,7 +376,7 @@ export default function DemoAdminPage() {
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
             onClick={() => setWinner(null)}
           >
-            <div className="rounded-2xl bg-gradient-to-br from-purple-600 via-fuchsia-600 to-pink-600 p-[2px] shadow-2xl shadow-purple-950/50">
+            <div className="rounded-2xl bg-linear-to-br from-purple-600 via-fuchsia-600 to-pink-600 p-0.5 shadow-2xl shadow-purple-950/50">
               <div
                 className="relative flex flex-col items-center gap-4 rounded-2xl bg-[#0b0b10] px-12 py-9 text-center text-white"
                 onClick={(e) => e.stopPropagation()}
@@ -250,7 +389,6 @@ export default function DemoAdminPage() {
                 >
                   ✕
                 </button>
-                <ChatWindowPopup twitchName={winner.twitchDisplayName} osuName={winner.osuUsername} />
                 <p className="text-sm font-semibold uppercase tracking-[0.3em] text-gradient">Winner</p>
                 <TwitchOsuBadges twitchName={winner.twitchDisplayName} osuName={winner.osuUsername} />
               </div>
@@ -260,13 +398,13 @@ export default function DemoAdminPage() {
       )}
 
       <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-10">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gradient">Admin Dashboard (Demo)</h1>
-          <button onClick={reset} className="text-sm text-zinc-500 underline hover:text-zinc-300">
+        <div className="flex items-start justify-between gap-4">
+          <ChannelHeader initial={channel} endpoint="/api/demo/channel-status" />
+          <button onClick={reset} className="shrink-0 text-sm text-zinc-500 underline hover:text-zinc-300">
             Reset demo data
           </button>
         </div>
-        <p className="-mt-4 w-fit rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-xs font-medium text-amber-300">
+        <p className="-mt-2 w-fit rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-xs font-medium text-amber-300">
           DEMO — {participants.length} dummy participants, no login needed
         </p>
 
@@ -343,160 +481,107 @@ export default function DemoAdminPage() {
             )}
           </div>
         </div>
-
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,420px)_1fr] lg:items-start">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,420px)_1fr]">
           <div className="flex flex-col gap-6">
             <div className={cardClass}>
               <h2 className="font-semibold text-zinc-100">Configure the settings for the giveaway.</h2>
 
-              <div className="mt-4 flex flex-col gap-1">
-                <span className="text-sm font-medium text-zinc-100">Keyword</span>
-                <p className="text-xs text-zinc-500">The phrase that users must type to enter the giveaway.</p>
-                <input
-                  value={settings.triggerWord}
-                  onChange={(e) => setSettings((s) => ({ ...s, triggerWord: e.target.value }))}
-                  className={inputClass + " mt-1"}
-                />
-              </div>
+              <DrawModeStages
+                defaultMode={settings.drawMode}
+                onModeChange={(drawMode) => persistSettings({ ...settings, drawMode })}
+                keyword={{
+                  top: (
+                    <>
+                      <div className="mt-3 flex flex-col gap-1">
+                        <span className="text-sm font-medium text-zinc-100">Keyword</span>
+                        <p className="text-xs text-zinc-500">The phrase that users must type to enter the giveaway.</p>
+                        <input
+                          value={settings.triggerWord}
+                          onChange={(e) => setSettings((s) => ({ ...s, triggerWord: e.target.value }))}
+                          className={inputClass + " mt-1"}
+                        />
+                      </div>
 
-              <div className="mt-4 divide-y divide-white/10 border-t border-white/10">
-                <DemoToggle
-                  label="Remove Spammers"
-                  description="Require an exact keyword match — messages with extra text won't count."
-                  checked={settings.removeSpammers}
-                  onChange={(checked) => setSettings((s) => ({ ...s, removeSpammers: checked }))}
-                />
-                <DemoToggle
-                  label="Unique Winners"
-                  description="Past winners won't be picked again."
-                  checked={settings.uniqueWinners}
-                  onChange={(checked) => setSettings((s) => ({ ...s, uniqueWinners: checked }))}
-                />
-                <DemoToggle
-                  label="Chat Announcement"
-                  description="Announce the winner in chat when picked from the dashboard."
-                  checked={settings.chatAnnouncement}
-                  onChange={(checked) => setSettings((s) => ({ ...s, chatAnnouncement: checked }))}
-                />
-              </div>
-
-              <details className="group mt-4 border-t border-white/10 pt-4">
-                <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-medium text-zinc-200 [&::-webkit-details-marker]:hidden">
-                  <span>Advanced Settings</span>
-                  <span className="text-zinc-500 transition group-open:rotate-180" aria-hidden>
-                    ⌄
-                  </span>
-                </summary>
-
-                <div className="mt-2 flex flex-col divide-y divide-white/10">
-                  <LuckModifierField
-                    label="Viewer Luck Modifier"
-                    value={settings.viewerLuckModifier}
-                    onChange={(v) => setSettings((s) => ({ ...s, viewerLuckModifier: v }))}
-                  />
-                  <LuckModifierField
-                    label="Regular Luck Modifier"
-                    value={settings.regularLuckModifier}
-                    onChange={(v) => setSettings((s) => ({ ...s, regularLuckModifier: v }))}
-                  />
-                  <LuckModifierField
-                    label="Subscriber Luck Modifier"
-                    value={settings.subscriberLuckModifier}
-                    onChange={(v) => setSettings((s) => ({ ...s, subscriberLuckModifier: v }))}
-                  />
-                  <LuckModifierField
-                    label="VIP Luck Modifier"
-                    value={settings.vipLuckModifier}
-                    onChange={(v) => setSettings((s) => ({ ...s, vipLuckModifier: v }))}
-                  />
-                  <LuckModifierField
-                    label="Moderator Luck Modifier"
-                    value={settings.moderatorLuckModifier}
-                    onChange={(v) => setSettings((s) => ({ ...s, moderatorLuckModifier: v }))}
-                  />
-                </div>
-
-                <div className="mt-3 flex flex-col gap-1">
-                  <span className="text-sm font-medium text-zinc-100">Regulars</span>
-                  <p className="text-xs text-zinc-500">
-                    One Twitch username per line. Used by the Regular Luck Modifier — Twitch has
-                    no built-in &quot;regular&quot; status, so this list is managed manually.
-                  </p>
-                  <textarea
-                    value={settings.regulars}
-                    onChange={(e) => setSettings((s) => ({ ...s, regulars: e.target.value }))}
-                    rows={3}
-                    className={inputClass + " mt-1 resize-y"}
-                  />
-                </div>
-              </details>
-
-              <details open className="group mt-4 border-t border-white/10 pt-4">
-                <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-medium text-zinc-200 [&::-webkit-details-marker]:hidden">
-                  <span>osu! Criteria</span>
-                  <span className="text-zinc-500 transition group-open:rotate-180" aria-hidden>
-                    ⌄
-                  </span>
-                </summary>
-
-                <div className="mt-4 flex flex-col gap-4">
-                  <div className="flex flex-col gap-1">
-                    <span className={labelClass}>Rank presets</span>
-                    <div className="flex flex-wrap gap-2">
-                      {RANK_DIGIT_PRESETS.map((preset) => (
-                        <button
-                          key={preset.id}
-                          onClick={() => applyRankPreset(preset.min, preset.max)}
-                          className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-zinc-300 transition hover:border-purple-500/40 hover:bg-white/10"
-                        >
-                          {preset.label}
-                        </button>
-                      ))}
-                    </div>
+                      <div className="mt-4 divide-y divide-white/10 border-t border-white/10">
+                        <DemoToggle
+                          label="Remove Spammers"
+                          description="Require an exact keyword match — messages with extra text won't count."
+                          checked={settings.removeSpammers}
+                          onChange={(checked) => setSettings((s) => ({ ...s, removeSpammers: checked }))}
+                        />
+                        <DemoToggle
+                          label="Unique Winners"
+                          description="Past winners won't be picked again."
+                          checked={settings.uniqueWinners}
+                          onChange={(checked) => setSettings((s) => ({ ...s, uniqueWinners: checked }))}
+                        />
+                      </div>
+                    </>
+                  ),
+                  bottom: keywordDrawBlock,
+                }}
+                number={{
+                  top: (
+                    <>
+                      <p className="mt-3 text-xs text-zinc-500">
+                        Opening entries draws a number from this range and keeps it to itself. Send a
+                        plain number from the chat simulator below — the first correct guess wins and
+                        closes the round.
+                      </p>
+                      <div className="mt-3 flex flex-col gap-1 text-sm">
+                        <span className={labelClass}>Range</span>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            value={settings.numberMin}
+                            onChange={(e) => setSettings((s) => ({ ...s, numberMin: Number(e.target.value) || 0 }))}
+                            className={inputClass + " w-1/2"}
+                            aria-label="Lowest possible number"
+                          />
+                          <span className="text-zinc-600">to</span>
+                          <input
+                            type="number"
+                            value={settings.numberMax}
+                            onChange={(e) => setSettings((s) => ({ ...s, numberMax: Number(e.target.value) || 0 }))}
+                            className={inputClass + " w-1/2"}
+                            aria-label="Highest possible number"
+                          />
+                        </div>
+                        <p className="text-xs text-zinc-500">
+                          Save the settings before opening entries — the number is drawn from the
+                          stored range.
+                        </p>
+                      </div>
+                    </>
+                  ),
+                }}
+                common={
+                  <div className="divide-y divide-white/10">
+                    <DemoToggle
+                      label="Subscribers Only"
+                      description="Only subscribers can win — in a number guess, a non-subscriber's correct guess doesn't count."
+                      checked={settings.subscribersOnly}
+                      onChange={(checked) => setSettings((s) => ({ ...s, subscribersOnly: checked }))}
+                    />
+                    <DemoToggle
+                      label="Chat Announcement"
+                      description="Announce the winner in chat when they are picked."
+                      checked={settings.chatAnnouncement}
+                      onChange={(checked) => setSettings((s) => ({ ...s, chatAnnouncement: checked }))}
+                    />
+                    <DemoToggle
+                      label="Hide osu! Stats"
+                      description="Reveal the winner without their rank, pp and top play."
+                      checked={settings.hideOsuStats}
+                      onChange={(checked) => setSettings((s) => ({ ...s, hideOsuStats: checked }))}
+                    />
                   </div>
-
-                  <RangeField label="Global Rank" onMin={(v) => setNum("globalRankMin", v)} onMax={(v) => setNum("globalRankMax", v)} min={criteria.globalRankMin} max={criteria.globalRankMax} />
-                  <RangeField label="Country Rank" onMin={(v) => setNum("countryRankMin", v)} onMax={(v) => setNum("countryRankMax", v)} min={criteria.countryRankMin} max={criteria.countryRankMax} />
-                  <RangeField label="PP" onMin={(v) => setNum("ppMin", v)} onMax={(v) => setNum("ppMax", v)} min={criteria.ppMin} max={criteria.ppMax} />
-                  <RangeField label="Accuracy (%)" onMin={(v) => setNum("accuracyMin", v)} onMax={(v) => setNum("accuracyMax", v)} min={criteria.accuracyMin} max={criteria.accuracyMax} />
-
-                  <Field
-                    label="Country Code (e.g. DE)"
-                    value={criteria.countryCode ?? ""}
-                    onChange={(v) => setCriteria((c) => ({ ...c, countryCode: v.trim() === "" ? undefined : v.trim().toUpperCase() }))}
-                  />
-                  <NumField label="Min. Playcount" value={criteria.playcountMin} onChange={(v) => setNum("playcountMin", v)} />
-                  <NumField label="Min. Top-Play Star Rating" value={criteria.topPlaySrMin} onChange={(v) => setNum("topPlaySrMin", v)} step="0.1" />
-                  <NumField label="Min. Top-Play PP" value={criteria.topPlayPpMin} onChange={(v) => setNum("topPlayPpMin", v)} />
-                </div>
-              </details>
-
-              <label className="mt-4 flex items-center gap-2 border-t border-white/10 pt-4 text-xs text-zinc-400">
-                <input
-                  type="checkbox"
-                  checked={ignoreOsuCriteria}
-                  onChange={(e) => setIgnoreOsuCriteria(e.target.checked)}
-                  className="h-4 w-4 rounded border-white/20 bg-white/5"
-                />
-                Ignore osu! criteria — pick from anyone who typed the keyword, even without a linked account
-              </label>
-
-              <div className="mt-4 flex items-center justify-between">
-                <p className="text-sm text-zinc-400">
-                  <span className="font-semibold text-zinc-100">{eligible.length}</span> eligible
-                </p>
-                <div className="flex gap-2">
-                  <button onClick={saveSettings} className={buttonClass("secondary")}>
-                    Save Settings
-                  </button>
-                  <button
-                    onClick={pickWinner}
-                    disabled={eligible.length === 0 || picking}
-                    className={buttonClass("primary")}
-                  >
-                    {picking ? "Picking…" : "Pick Winner"}
-                  </button>
-                </div>
+                }
+              />
+              <div className="mt-4 flex justify-end border-t border-white/10 pt-3">
+                <button onClick={saveSettings} className={buttonClass("secondary")}>
+                  Save Settings
+                </button>
               </div>
             </div>
 
@@ -535,8 +620,8 @@ export default function DemoAdminPage() {
               </div>
             </div>
           </div>
-
-          <div className={cardClass + " flex h-[640px] flex-col overflow-hidden p-0 lg:sticky lg:top-6"}>
+          <div className="lg:min-h-134">
+          <div className={cardClass + " flex h-145 flex-col overflow-hidden p-0 lg:sticky lg:top-6 lg:h-full lg:max-h-[calc(100vh-3rem)]"}>
             <div className="border-b border-white/10 px-4 py-3 text-sm font-semibold text-zinc-100">
               Stream Chat (simulated)
             </div>
@@ -629,6 +714,7 @@ export default function DemoAdminPage() {
               </div>
             </div>
           </div>
+          </div>
         </div>
 
         <section className={cardClass}>
@@ -637,7 +723,7 @@ export default function DemoAdminPage() {
           </h2>
           <ul className="flex flex-col gap-2">
             {draws.map((draw) => (
-              <li key={draw.id} className="rounded-lg border border-white/10 bg-white/[0.02] px-4 py-2 text-sm">
+              <li key={draw.id} className="rounded-lg border border-white/10 bg-white/2 px-4 py-2 text-sm">
                 <span className="font-medium text-zinc-200">
                   {draw.winnerTwitchDisplayName
                     ? `${draw.winnerTwitchDisplayName}${draw.winnerOsuUsername ? ` (${draw.winnerOsuUsername})` : ""}`
@@ -688,7 +774,7 @@ function DemoToggle({
           onChange={(e) => onChange(e.target.checked)}
           className="peer sr-only"
         />
-        <span className="h-6 w-11 rounded-full bg-white/10 transition peer-checked:bg-gradient-to-r peer-checked:from-purple-600 peer-checked:to-pink-600" />
+        <span className="h-6 w-11 rounded-full bg-white/10 transition peer-checked:bg-linear-to-r peer-checked:from-purple-600 peer-checked:to-pink-600" />
         <span className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition peer-checked:translate-x-5" />
       </span>
     </label>

@@ -89,7 +89,7 @@ export default function DemoLinkPage() {
                 ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-200"
                 : step === "twitch-done"
                   ? "border-white/10 bg-white/5"
-                  : "border-white/5 bg-white/[0.02] text-zinc-600"
+                  : "border-white/5 bg-white/2 text-zinc-600"
             }`}
           >
             {step === "linked" ? (
@@ -117,7 +117,7 @@ export default function DemoLinkPage() {
 
         {step === "linked" && (
           <a href="/demo/admin" className="text-sm text-purple-300 underline hover:text-purple-200">
-            Continue to admin dashboard →
+            Continue to streamer dashboard →
           </a>
         )}
       </main>

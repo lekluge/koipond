@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabaseBrowser } from "@/lib/supabaseBrowser";
-import { ChatWindowPopup, TwitchOsuBadges } from "@/components/WinnerReveal";
+import {  TwitchOsuBadges } from "@/components/WinnerReveal";
 import { formatPp, formatStars } from "@/lib/format";
 import { Confetti } from "./Confetti";
 import { WinnerDetails } from "./WinnerDetails";
@@ -28,6 +28,7 @@ type DrawRow = {
   winner_participant_id: string | null;
   winner_twitch_display_name: string | null;
   winner_osu_username: string | null;
+  hide_osu_stats: boolean;
 };
 
 export function WinnerModal({ streamerId }: { streamerId: string }) {
@@ -50,9 +51,8 @@ export function WinnerModal({ streamerId }: { streamerId: string }) {
         async (payload) => {
           const draw = payload.new as DrawRow;
           if (!draw.winner_twitch_display_name) return;
-
           let stats: Winner["osu_stats"] = null;
-          if (draw.winner_participant_id) {
+          if (draw.winner_participant_id && !draw.hide_osu_stats) {
             const { data } = await supabase
               .from("osu_stats")
               .select("global_rank, pp, top_play_pp, top_play_sr")
@@ -96,7 +96,7 @@ export function WinnerModal({ streamerId }: { streamerId: string }) {
         className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
         onClick={() => setWinner(null)}
       >
-        <div className="rounded-2xl bg-gradient-to-br from-purple-600 via-fuchsia-600 to-pink-600 p-[2px] shadow-2xl shadow-purple-950/50">
+        <div className="rounded-2xl bg-linear-to-br from-purple-600 via-fuchsia-600 to-pink-600 p-0.5 shadow-2xl shadow-purple-950/50">
           <div
             className="relative flex flex-col items-center gap-4 rounded-2xl bg-[#0b0b10] px-12 py-9 text-center text-white"
             onClick={(e) => e.stopPropagation()}
@@ -110,7 +110,6 @@ export function WinnerModal({ streamerId }: { streamerId: string }) {
               ✕
             </button>
 
-            <ChatWindowPopup twitchName={winner.twitch_display_name} osuName={winner.osu_username} />
 
             <p className="text-sm font-semibold uppercase tracking-[0.3em] text-gradient">Winner</p>
             <TwitchOsuBadges twitchName={winner.twitch_display_name} osuName={winner.osu_username} />

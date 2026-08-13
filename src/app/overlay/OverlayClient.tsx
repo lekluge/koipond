@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabaseBrowser } from "@/lib/supabaseBrowser";
-import { ChatWindowPopup, TwitchOsuBadges } from "@/components/WinnerReveal";
+import { TwitchOsuBadges } from "@/components/WinnerReveal";
 import { formatPp, formatStars } from "@/lib/format";
 
 type Winner = {
@@ -20,6 +20,7 @@ type DrawRow = {
   winner_participant_id: string | null;
   winner_twitch_display_name: string | null;
   winner_osu_username: string | null;
+  hide_osu_stats: boolean;
 };
 
 const AUTO_HIDE_MS = 12_000;
@@ -54,8 +55,11 @@ export function OverlayClient({ streamerId }: { streamerId: string }) {
           const draw = payload.new as DrawRow;
           if (!draw.winner_twitch_display_name) return;
 
+          // The draw says whether stats were meant to be shown, so a browser
+          // source left running for weeks still honours the current setting.
+          // Hidden means not fetched: the numbers never reach the page.
           let stats: Winner["osu_stats"] = null;
-          if (draw.winner_participant_id) {
+          if (draw.winner_participant_id && !draw.hide_osu_stats) {
             const { data } = await supabase
               .from("osu_stats")
               .select("global_rank, pp, top_play_pp, top_play_sr")
@@ -92,7 +96,7 @@ export function OverlayClient({ streamerId }: { streamerId: string }) {
         >
           {/* <ChatWindowPopup twitchName={winner.twitch_display_name} osuName={winner.osu_username} /> */}
 
-          <div className="rounded-2xl bg-gradient-to-br from-purple-600 via-fuchsia-600 to-pink-600 p-[2px] shadow-2xl shadow-purple-950/50">
+          <div className="rounded-2xl bg-linear-to-br from-purple-600 via-fuchsia-600 to-pink-600 p-0.5 shadow-2xl shadow-purple-950/50">
             <div className="rounded-2xl bg-[#0b0b10] px-12 py-9 text-center text-white">
               <p className="text-sm font-semibold uppercase tracking-[0.3em] text-gradient">Winner</p>
               <div className="mt-3">

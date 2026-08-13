@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { DemoParticipant } from "@/lib/demoMatch";
 import type { DemoDraw } from "@/lib/demoStore";
-import { ChatWindowPopup, TwitchOsuBadges } from "@/components/WinnerReveal";
+import { TwitchOsuBadges } from "@/components/WinnerReveal";
 import { formatPp, formatStars } from "@/lib/format";
 
 const POLL_MS = 1500;
@@ -38,7 +38,9 @@ export default function DemoOverlayPage() {
         if (!cancelled && draw && draw.id !== lastDrawId.current) {
           lastDrawId.current = draw.id;
           if (draw.winnerTwitchDisplayName) {
-            const stats = participantsRef.current.find((p) => p.twitchDisplayName === draw.winnerTwitchDisplayName) ?? null;
+            const stats = draw.hideOsuStats
+              ? null
+              : participantsRef.current.find((p) => p.twitchDisplayName === draw.winnerTwitchDisplayName) ?? null;
             setWinner({ twitchDisplayName: draw.winnerTwitchDisplayName, osuUsername: draw.winnerOsuUsername, stats });
             setVisible(true);
             clearTimeout(hideTimer.current);
@@ -66,9 +68,8 @@ export default function DemoOverlayPage() {
             visible ? "translate-y-0 scale-100 opacity-100" : "translate-y-6 scale-95 opacity-0"
           }`}
         >
-          <ChatWindowPopup twitchName={winner.twitchDisplayName} osuName={winner.osuUsername} />
 
-          <div className="rounded-2xl bg-gradient-to-br from-purple-600 via-fuchsia-600 to-pink-600 p-[2px] shadow-2xl shadow-purple-950/50">
+          <div className="rounded-2xl bg-linear-to-br from-purple-600 via-fuchsia-600 to-pink-600 p-0.5 shadow-2xl shadow-purple-950/50">
             <div className="rounded-2xl bg-[#0b0b10] px-12 py-9 text-center text-white">
               <p className="text-sm font-semibold uppercase tracking-[0.3em] text-gradient">Winner</p>
               <div className="mt-3">
