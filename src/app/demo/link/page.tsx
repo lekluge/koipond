@@ -117,7 +117,7 @@ export default function DemoLinkPage() {
 
         {step === "linked" && (
           <a href="/demo/admin" className="text-sm text-purple-300 underline hover:text-purple-200">
-            Continue to admin dashboard →
+            Continue to streamer dashboard →
           </a>
         )}
       </main>

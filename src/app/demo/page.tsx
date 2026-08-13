@@ -18,7 +18,7 @@ export default function DemoLandingPage() {
             1. Try the link flow (simulated Twitch/osu! login)
           </a>
           <a href="/demo/admin" className={buttonClass("primary", "py-3")}>
-            2. Open admin dashboard
+            2. Open streamer dashboard
           </a>
           <a href="/demo/overlay" target="_blank" rel="noreferrer" className={buttonClass("secondary", "py-3")}>
             3. Open overlay in a new tab

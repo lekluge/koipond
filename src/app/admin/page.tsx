@@ -120,7 +120,7 @@ export default async function AdminPage({
           entrants={entrants}
         >
           <div>
-            <h1 className="text-2xl font-bold text-gradient">Admin Dashboard</h1>
+            <h1 className="text-2xl font-bold text-gradient">Streamer Dashboard</h1>
             <p className="mt-1 text-sm text-zinc-500">
               Channel: <span className="text-zinc-300">{streamer.twitchDisplayName}</span>
             </p>

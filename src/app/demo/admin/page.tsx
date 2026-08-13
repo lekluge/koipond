@@ -260,7 +260,7 @@ export default function DemoAdminPage() {
 
       <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-10">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gradient">Admin Dashboard (Demo)</h1>
+          <h1 className="text-2xl font-bold text-gradient">Streamer Dashboard (Demo)</h1>
           <button onClick={reset} className="text-sm text-zinc-500 underline hover:text-zinc-300">
             Reset demo data
           </button>
