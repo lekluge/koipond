@@ -54,7 +54,7 @@ export function DrawModeStages({
                   "flex cursor-pointer items-center justify-between gap-3 rounded-lg border px-4 py-3 transition",
                   selected
                     ? "border-purple-500/60 bg-purple-500/10"
-                    : "border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/5",
+                    : "border-white/10 bg-white/2 hover:border-white/20 hover:bg-white/5",
                 )}
               >
                 <input

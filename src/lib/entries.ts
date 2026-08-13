@@ -17,6 +17,7 @@ export type EntrySettings = {
   chatAnnouncement: boolean;
   ignoreOsuCriteria: boolean;
   subscribersOnly: boolean;
+  hideOsuStats: boolean;
   viewerLuckModifier: number;
   regularLuckModifier: number;
   subscriberLuckModifier: number;
@@ -37,6 +38,7 @@ export type GiveawaySettingsInput = {
   chatAnnouncement: boolean;
   ignoreOsuCriteria: boolean;
   subscribersOnly: boolean;
+  hideOsuStats: boolean;
   viewerLuckModifier: number;
   regularLuckModifier: number;
   subscriberLuckModifier: number;
@@ -77,7 +79,7 @@ export type Entrant = {
 };
 
 const SETTINGS_COLUMNS =
-  "trigger_word, draw_mode, number_min, number_max, entries_open, entries_session, remove_spammers, unique_winners, chat_announcement, ignore_osu_criteria, subscribers_only, viewer_luck_modifier, regular_luck_modifier, subscriber_luck_modifier, vip_luck_modifier, moderator_luck_modifier, regulars, chat_capture_draw_id, chat_capture_twitch_id, chat_capture_until";
+  "trigger_word, draw_mode, number_min, number_max, entries_open, entries_session, remove_spammers, unique_winners, chat_announcement, ignore_osu_criteria, subscribers_only, hide_osu_stats, viewer_luck_modifier, regular_luck_modifier, subscriber_luck_modifier, vip_luck_modifier, moderator_luck_modifier, regulars, chat_capture_draw_id, chat_capture_twitch_id, chat_capture_until";
 
 type SettingsRow = {
   trigger_word: string;
@@ -91,6 +93,7 @@ type SettingsRow = {
   chat_announcement: boolean;
   ignore_osu_criteria: boolean;
   subscribers_only: boolean;
+  hide_osu_stats: boolean;
   viewer_luck_modifier: number | string;
   regular_luck_modifier: number | string;
   subscriber_luck_modifier: number | string;
@@ -115,6 +118,7 @@ function toEntrySettings(data: SettingsRow): EntrySettings {
     chatAnnouncement: data.chat_announcement,
     ignoreOsuCriteria: data.ignore_osu_criteria,
     subscribersOnly: data.subscribers_only,
+    hideOsuStats: data.hide_osu_stats,
     viewerLuckModifier: Number(data.viewer_luck_modifier),
     regularLuckModifier: Number(data.regular_luck_modifier),
     subscriberLuckModifier: Number(data.subscriber_luck_modifier),
@@ -183,6 +187,7 @@ export async function updateGiveawaySettings(streamerId: string, input: Giveaway
       chat_announcement: input.chatAnnouncement,
       ignore_osu_criteria: input.ignoreOsuCriteria,
       subscribers_only: input.subscribersOnly,
+      hide_osu_stats: input.hideOsuStats,
       viewer_luck_modifier: input.viewerLuckModifier,
       regular_luck_modifier: input.regularLuckModifier,
       subscriber_luck_modifier: input.subscriberLuckModifier,

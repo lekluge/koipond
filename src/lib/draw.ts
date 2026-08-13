@@ -182,6 +182,7 @@ export async function pickWinner(
       winner_twitch_display_name: winner.twitchDisplayName,
       winner_osu_username: winner.osuUsername,
       triggered_by: triggeredBy,
+      hide_osu_stats: settings.hideOsuStats,
     })
     .select("id")
     .single();
@@ -202,6 +203,7 @@ export async function recordNumberWinner(
   streamerId: string,
   session: number,
   guesser: { twitchId: string; twitchLogin: string; twitchDisplayName: string },
+  hideOsuStats: boolean,
 ) {
   const db = supabaseAdmin();
 
@@ -222,6 +224,7 @@ export async function recordNumberWinner(
       winner_twitch_display_name: guesser.twitchDisplayName,
       winner_osu_username: participant?.osu_username ?? null,
       triggered_by: "chat",
+      hide_osu_stats: hideOsuStats,
     })
     .select("id")
     .single();

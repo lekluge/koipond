@@ -125,11 +125,16 @@ export async function POST(req: NextRequest) {
         if (guess !== null && (!settings.subscribersOnly || isSubscriber)) {
           const session = await claimSecretNumber(streamer.id, guess);
           if (session !== null) {
-            const { osuUsername } = await recordNumberWinner(streamer.id, session, {
-              twitchId: event.chatter_user_id,
-              twitchLogin: event.chatter_user_login,
-              twitchDisplayName: event.chatter_user_name,
-            });
+            const { osuUsername } = await recordNumberWinner(
+              streamer.id,
+              session,
+              {
+                twitchId: event.chatter_user_id,
+                twitchLogin: event.chatter_user_login,
+                twitchDisplayName: event.chatter_user_name,
+              },
+              settings.hideOsuStats,
+            );
 
             if (settings.chatAnnouncement) {
               await sendTwitchChatMessage(

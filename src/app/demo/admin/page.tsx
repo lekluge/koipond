@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { matchesCriteria, type DemoCriteria, type DemoParticipant } from "@/lib/demoMatch";
 import type { DemoCandidate, DemoChatMessage, DemoDraw, DemoEntrant, GiveawaySettings } from "@/lib/demoStore";
 import { RANK_DIGIT_PRESETS } from "@/lib/rankPresets";
-import { ChatWindowPopup, TwitchOsuBadges } from "@/components/WinnerReveal";
+import { TwitchOsuBadges } from "@/components/WinnerReveal";
 import { Confetti } from "@/app/admin/Confetti";
 import { BackgroundGlow, SourceLink, buttonClass, cardClass, inputClass, labelClass } from "@/components/ui";
 
@@ -237,7 +237,7 @@ export default function DemoAdminPage() {
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
             onClick={() => setWinner(null)}
           >
-            <div className="rounded-2xl bg-gradient-to-br from-purple-600 via-fuchsia-600 to-pink-600 p-[2px] shadow-2xl shadow-purple-950/50">
+            <div className="rounded-2xl bg-linear-to-br from-purple-600 via-fuchsia-600 to-pink-600 p-0.5 shadow-2xl shadow-purple-950/50">
               <div
                 className="relative flex flex-col items-center gap-4 rounded-2xl bg-[#0b0b10] px-12 py-9 text-center text-white"
                 onClick={(e) => e.stopPropagation()}
@@ -250,7 +250,6 @@ export default function DemoAdminPage() {
                 >
                   ✕
                 </button>
-                <ChatWindowPopup twitchName={winner.twitchDisplayName} osuName={winner.osuUsername} />
                 <p className="text-sm font-semibold uppercase tracking-[0.3em] text-gradient">Winner</p>
                 <TwitchOsuBadges twitchName={winner.twitchDisplayName} osuName={winner.osuUsername} />
               </div>
@@ -536,7 +535,7 @@ export default function DemoAdminPage() {
             </div>
           </div>
 
-          <div className={cardClass + " flex h-[640px] flex-col overflow-hidden p-0 lg:sticky lg:top-6"}>
+          <div className={cardClass + " flex h-160 flex-col overflow-hidden p-0 lg:sticky lg:top-6"}>
             <div className="border-b border-white/10 px-4 py-3 text-sm font-semibold text-zinc-100">
               Stream Chat (simulated)
             </div>
@@ -637,7 +636,7 @@ export default function DemoAdminPage() {
           </h2>
           <ul className="flex flex-col gap-2">
             {draws.map((draw) => (
-              <li key={draw.id} className="rounded-lg border border-white/10 bg-white/[0.02] px-4 py-2 text-sm">
+              <li key={draw.id} className="rounded-lg border border-white/10 bg-white/2 px-4 py-2 text-sm">
                 <span className="font-medium text-zinc-200">
                   {draw.winnerTwitchDisplayName
                     ? `${draw.winnerTwitchDisplayName}${draw.winnerOsuUsername ? ` (${draw.winnerOsuUsername})` : ""}`
@@ -688,7 +687,7 @@ function DemoToggle({
           onChange={(e) => onChange(e.target.checked)}
           className="peer sr-only"
         />
-        <span className="h-6 w-11 rounded-full bg-white/10 transition peer-checked:bg-gradient-to-r peer-checked:from-purple-600 peer-checked:to-pink-600" />
+        <span className="h-6 w-11 rounded-full bg-white/10 transition peer-checked:bg-linear-to-r peer-checked:from-purple-600 peer-checked:to-pink-600" />
         <span className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition peer-checked:translate-x-5" />
       </span>
     </label>

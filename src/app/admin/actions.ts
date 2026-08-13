@@ -60,6 +60,7 @@ function giveawaySettingsFromForm(formData: FormData): GiveawaySettingsInput {
     chatAnnouncement: formData.has("chatAnnouncement"),
     ignoreOsuCriteria: formData.has("ignoreOsuCriteria"),
     subscribersOnly: formData.has("subscribersOnly"),
+    hideOsuStats: formData.has("hideOsuStats"),
     viewerLuckModifier: luckModifier(formData, "viewerLuckModifier"),
     regularLuckModifier: luckModifier(formData, "regularLuckModifier"),
     subscriberLuckModifier: luckModifier(formData, "subscriberLuckModifier"),

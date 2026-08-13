@@ -179,6 +179,12 @@ export default async function AdminPage({
                         description="Announce the winner in chat when they are picked."
                         defaultChecked={entrySettings.chatAnnouncement}
                       />
+                      <ToggleField
+                        name="hideOsuStats"
+                        label="Hide osu! Stats"
+                        description="Reveal the winner without their rank, pp and top play — on the overlay and here."
+                        defaultChecked={entrySettings.hideOsuStats}
+                      />
                     </div>
                   }
                 />
@@ -229,11 +235,11 @@ export default async function AdminPage({
                 </div>
               </section>
             </div>
-            <div className="lg:min-h-[34rem]">
+            <div className="lg:min-h-134">
               <div
                 className={
                   cardClass +
-                  " flex h-[600px] flex-col overflow-hidden p-0 lg:sticky lg:top-6 lg:h-full lg:max-h-[calc(100vh-3rem)]"
+                  " flex h-145 flex-col overflow-hidden p-0 lg:sticky lg:top-6 lg:h-full lg:max-h-[calc(100vh-3rem)]"
                 }
               >
                 <ChatPanel
@@ -251,7 +257,7 @@ export default async function AdminPage({
             <ul className="flex flex-col gap-2">
               {history.map((draw) => {
                 return (
-                  <li key={draw.id} className="rounded-lg border border-white/10 bg-white/[0.02] px-4 py-2 text-sm">
+                  <li key={draw.id} className="rounded-lg border border-white/10 bg-white/2 px-4 py-2 text-sm">
                     <span className="font-medium text-zinc-200">
                       {draw.winner_twitch_display_name
                         ? `${draw.winner_twitch_display_name}${draw.winner_osu_username ? ` (${draw.winner_osu_username})` : ""}`

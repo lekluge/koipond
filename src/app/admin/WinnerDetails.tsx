@@ -144,7 +144,7 @@ export function WinnerDetails({
               <p key={m.id} className="text-sm text-zinc-100">
                 <span className="mr-1.5 text-[10px] text-zinc-600">{time(m.sent_at)}</span>
                 <span className="font-semibold text-gradient">{profile?.displayName ?? "winner"}</span>{" "}
-                <span className="break-words">{m.message}</span>
+                <span className="wrap-break-word">{m.message}</span>
               </p>
             ))
           )}
