@@ -146,8 +146,7 @@ export default async function AdminPage({
             </div>
             <EntriesPanel />
           </div>
-
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,420px)_1fr] lg:items-start">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,420px)_1fr]">
             <div className="flex flex-col gap-6">
               <form id="criteria-form" action={saveSettingsAction} className={cardClass}>
                 <button type="submit" className="hidden" tabIndex={-1} aria-hidden />
@@ -230,12 +229,18 @@ export default async function AdminPage({
                 </div>
               </section>
             </div>
-
-            <div className={cardClass + " flex h-[790px] flex-col overflow-hidden p-0 lg:sticky lg:top-6"}>
-              <ChatPanel
-                streamerId={streamer.id}
-                chatEmbedUrl={`https://www.twitch.tv/embed/${streamer.twitchLogin}/chat?parent=${chatParentHost}&darkpopout`}
-              />
+            <div className="lg:min-h-[34rem]">
+              <div
+                className={
+                  cardClass +
+                  " flex h-[600px] flex-col overflow-hidden p-0 lg:sticky lg:top-6 lg:h-full lg:max-h-[calc(100vh-3rem)]"
+                }
+              >
+                <ChatPanel
+                  streamerId={streamer.id}
+                  chatEmbedUrl={`https://www.twitch.tv/embed/${streamer.twitchLogin}/chat?parent=${chatParentHost}&darkpopout`}
+                />
+              </div>
             </div>
           </div>
 
