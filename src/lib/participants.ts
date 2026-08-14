@@ -3,6 +3,19 @@ import { supabaseAdmin } from "@/lib/supabaseServer";
 import { fetchOsuStats, type OsuMe, type OsuStats } from "@/lib/osu";
 import type { Session } from "@/lib/session";
 
+export async function countLinkedParticipants(): Promise<number | null> {
+  try {
+    const { count, error } = await supabaseAdmin()
+      .from("participants")
+      .select("id", { count: "exact", head: true });
+    if (error) throw error;
+    return count ?? null;
+  } catch (err) {
+    console.error("Counting linked participants failed", err);
+    return null;
+  }
+}
+
 export async function saveOsuStats(participantId: string, stats: OsuStats) {
   const { error } = await supabaseAdmin().from("osu_stats").upsert(
     {
