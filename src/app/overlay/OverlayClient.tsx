@@ -54,10 +54,6 @@ export function OverlayClient({ streamerId }: { streamerId: string }) {
         async (payload) => {
           const draw = payload.new as DrawRow;
           if (!draw.winner_twitch_display_name) return;
-
-          // The draw says whether stats were meant to be shown, so a browser
-          // source left running for weeks still honours the current setting.
-          // Hidden means not fetched: the numbers never reach the page.
           let stats: Winner["osu_stats"] = null;
           if (draw.winner_participant_id && !draw.hide_osu_stats) {
             const { data } = await supabase

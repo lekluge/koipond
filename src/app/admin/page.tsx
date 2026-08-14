@@ -377,7 +377,6 @@ function KeywordEntrySettings({ entrySettings }: { entrySettings: EntrySettings 
   );
 }
 
-/** Everything about how the winner is drawn — sits below the shared toggles. */
 function KeywordDrawSettings({
   entrySettings,
   criteria,
