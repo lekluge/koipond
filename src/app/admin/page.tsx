@@ -6,7 +6,7 @@ import { listPresets } from "@/lib/presets";
 import { getEntrants, getEntrySettings, type EntrySettings } from "@/lib/entries";
 import { getChannelStatus } from "@/lib/channelStatus";
 import { ChannelHeader } from "./ChannelHeader";
-import { DrawModeStages } from "./DrawModeStages";
+import { DrawModeStages, ModeOnly } from "./DrawModeStages";
 import { RankPresetButtons, ApplyPresetButton } from "./PresetControls";
 import { ChatConnectionStatus } from "./ChatConnectionStatus";
 import { ChatPanel } from "./ChatPanel";
@@ -122,7 +122,7 @@ export default async function AdminPage({
           entriesOpen={entrySettings.entriesOpen}
           entrants={entrants}
         >
-          <ChannelHeader initial={channelStatus} />
+          {/* <ChannelHeader initial={channelStatus} /> */}
 
           {error && (
             <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
@@ -164,26 +164,52 @@ export default async function AdminPage({
                   }}
                   number={{ top: <NumberRangeSettings entrySettings={entrySettings} /> }}
                   common={
-                    <div className="divide-y divide-white/10">
-                      <ToggleField
-                        name="subscribersOnly"
-                        label="Subscribers Only"
-                        description="Only subscribers can win — in a number guess, a non-subscriber's correct guess doesn't count."
-                        defaultChecked={entrySettings.subscribersOnly}
-                      />
-                      <ToggleField
-                        name="chatAnnouncement"
-                        label="Chat Announcement"
-                        description="Announce the winner in chat when they are picked."
-                        defaultChecked={entrySettings.chatAnnouncement}
-                      />
-                      <ToggleField
-                        name="hideOsuStats"
-                        label="Hide osu! Stats"
-                        description="Reveal the winner without their rank, pp and top play — on the overlay and here."
-                        defaultChecked={entrySettings.hideOsuStats}
-                      />
-                    </div>
+                    <details open className="group mt-4 border-t border-white/10 pt-4">
+                      <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-medium text-zinc-200 [&::-webkit-details-marker]:hidden">
+                        <span>Basic Settings</span>
+                        <span className="text-zinc-500 transition group-open:rotate-180" aria-hidden>
+                          ⌄
+                        </span>
+                      </summary>
+
+                      <div className="mt-2 divide-y divide-white/10">
+                        {/* These two mean nothing in a number guess. */}
+                        <ModeOnly mode="keyword">
+                          <div className="divide-y divide-white/10">
+                            <ToggleField
+                              name="removeSpammers"
+                              label="Remove Spammers"
+                              description="Require an exact keyword match — messages with extra text won't count."
+                              defaultChecked={entrySettings.removeSpammers}
+                            />
+                            <ToggleField
+                              name="uniqueWinners"
+                              label="Unique Winners"
+                              description="Past winners won't be picked again."
+                              defaultChecked={entrySettings.uniqueWinners}
+                            />
+                          </div>
+                        </ModeOnly>
+                        <ToggleField
+                          name="subscribersOnly"
+                          label="Subscribers Only"
+                          description="Only subscribers can win — in a number guess, a non-subscriber's correct guess doesn't count."
+                          defaultChecked={entrySettings.subscribersOnly}
+                        />
+                        <ToggleField
+                          name="chatAnnouncement"
+                          label="Chat Announcement"
+                          description="Announce the winner in chat when they are picked."
+                          defaultChecked={entrySettings.chatAnnouncement}
+                        />
+                        <ToggleField
+                          name="hideOsuStats"
+                          label="Hide osu! Stats"
+                          description="Reveal the winner without their rank, pp and top play — on the overlay and here."
+                          defaultChecked={entrySettings.hideOsuStats}
+                        />
+                      </div>
+                    </details>
                   }
                 />
 
@@ -347,21 +373,6 @@ function KeywordEntrySettings({ entrySettings }: { entrySettings: EntrySettings 
         <p className="text-xs text-zinc-500">The phrase that users must type to enter the giveaway.</p>
         <input name="triggerWord" defaultValue={entrySettings.triggerWord} className={inputClass + " mt-1"} />
       </div>
-
-      <div className="mt-4 divide-y divide-white/10 border-t border-white/10">
-        <ToggleField
-          name="removeSpammers"
-          label="Remove Spammers"
-          description="Require an exact keyword match — messages with extra text won't count."
-          defaultChecked={entrySettings.removeSpammers}
-        />
-        <ToggleField
-          name="uniqueWinners"
-          label="Unique Winners"
-          description="Past winners won't be picked again."
-          defaultChecked={entrySettings.uniqueWinners}
-        />
-      </div>
     </>
   );
 }
@@ -404,14 +415,6 @@ function KeywordDrawSettings({
         </div>
       </details>
 
-      <div className="mt-4 border-t border-white/10 pt-2">
-        <ToggleField
-          name="ignoreOsuCriteria"
-          label="Ignore osu! Criteria"
-          description="Pick from anyone who typed the keyword, even without a linked account."
-          defaultChecked={entrySettings.ignoreOsuCriteria}
-        />
-      </div>
       <details className="group mt-4 border-t border-white/10 pt-4">
         <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-medium text-zinc-200 [&::-webkit-details-marker]:hidden">
           <span>Advanced Settings</span>
@@ -449,6 +452,15 @@ function KeywordDrawSettings({
           />
         </div>
       </details>
+
+      <div className="mt-4 border-t border-white/10 pt-2">
+        <ToggleField
+          name="ignoreOsuCriteria"
+          label="Ignore osu! Criteria"
+          description="Pick from anyone who typed the keyword, even without a linked account."
+          defaultChecked={entrySettings.ignoreOsuCriteria}
+        />
+      </div>
 
       <div className="mt-4 flex items-center justify-between">
         <p className="text-sm text-zinc-400">
