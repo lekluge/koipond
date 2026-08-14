@@ -1,8 +1,23 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { createContext, useContext, useState, type ReactNode } from "react";
 import { cx } from "@/components/ui";
 import type { DrawMode } from "@/lib/entries";
+
+const DrawModeContext = createContext<DrawMode>("keyword");
+
+/**
+ * Wraps a part of the shared block that only applies to one giveaway type.
+ *
+ * A context rather than a prop, because the shared block is built by a server
+ * component that cannot receive the active mode — and cannot be handed a
+ * function either. Hidden, never unmounted: the form autosaves and reads every
+ * field it knows, so an input that leaves the DOM comes back as empty.
+ */
+export function ModeOnly({ mode, children }: { mode: DrawMode; children: ReactNode }) {
+  const active = useContext(DrawModeContext);
+  return <div className={cx(active === mode ? "block" : "hidden")}>{children}</div>;
+}
 
 const MODES: { value: DrawMode; label: string; hint: string }[] = [
   {
@@ -29,6 +44,7 @@ export function DrawModeStages({
   defaultMode: DrawMode;
   keyword: StageSlots;
   number: StageSlots;
+  /** Shown for every type; parts of it can opt out with <ModeOnly>. */
   common: ReactNode;
   onModeChange?: (mode: DrawMode) => void;
 }) {
@@ -43,7 +59,7 @@ export function DrawModeStages({
   const active = MODES.find((m) => m.value === mode) ?? MODES[0];
 
   return (
-    <>
+    <DrawModeContext.Provider value={mode}>
       <fieldset className={cx("mt-4", picking ? "block" : "hidden")}>
         <legend className="text-xs font-medium uppercase tracking-wide text-zinc-500">
           Giveaway type
@@ -112,6 +128,6 @@ export function DrawModeStages({
         <div className={cx(mode === "keyword" ? "block" : "hidden")}>{keyword.bottom}</div>
         <div className={cx(mode === "number" ? "block" : "hidden")}>{number.bottom}</div>
       </div>
-    </>
+    </DrawModeContext.Provider>
   );
 }
