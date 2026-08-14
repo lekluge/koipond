@@ -118,7 +118,6 @@ function freshStore(): Store {
     entrants: [],
     chatLog: [],
     numberTarget: null,
-    // Backdated so the header doesn't open on "just started".
     streamStartedAt: new Date(Date.now() - 97 * 60_000).toISOString(),
   };
 }

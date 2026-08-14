@@ -6,14 +6,6 @@ import type { DrawMode } from "@/lib/entries";
 
 const DrawModeContext = createContext<DrawMode>("keyword");
 
-/**
- * Wraps a part of the shared block that only applies to one giveaway type.
- *
- * A context rather than a prop, because the shared block is built by a server
- * component that cannot receive the active mode — and cannot be handed a
- * function either. Hidden, never unmounted: the form autosaves and reads every
- * field it knows, so an input that leaves the DOM comes back as empty.
- */
 export function ModeOnly({ mode, children }: { mode: DrawMode; children: ReactNode }) {
   const active = useContext(DrawModeContext);
   return <div className={cx(active === mode ? "block" : "hidden")}>{children}</div>;
@@ -44,7 +36,6 @@ export function DrawModeStages({
   defaultMode: DrawMode;
   keyword: StageSlots;
   number: StageSlots;
-  /** Shown for every type; parts of it can opt out with <ModeOnly>. */
   common: ReactNode;
   onModeChange?: (mode: DrawMode) => void;
 }) {

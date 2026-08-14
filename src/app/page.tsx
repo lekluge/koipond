@@ -1,6 +1,10 @@
 import { BackgroundGlow, SourceLink, buttonClass, cardClass } from "@/components/ui";
+import { countLinkedParticipants } from "@/lib/participants";
+export const revalidate = 600;
 
-export default function Home() {
+export default async function Home() {
+  const linked = await countLinkedParticipants();
+
   return (
     <>
       <BackgroundGlow />
@@ -16,6 +20,12 @@ export default function Home() {
           <a href="/link" className={buttonClass("primary", "w-full py-3")}>
             Link account
           </a>
+          {linked !== null && linked > 0 && (
+            <p className="-mt-2 text-xs text-zinc-500">
+              <span className="font-semibold text-zinc-300">{linked.toLocaleString("en-US")}</span>{" "}
+              {linked === 1 ? "account" : "accounts"} linked so far
+            </p>
+          )}
           <a href="/admin" className="text-xs text-zinc-500 transition hover:text-zinc-300">
             Are you a streamer? Set up your channel
           </a>

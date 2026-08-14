@@ -20,7 +20,6 @@ export function ChannelHeader({
   endpoint = "/api/admin/channel-status",
 }: {
   initial: ChannelStatus;
-  /** The demo dashboard polls its own simulated channel instead. */
   endpoint?: string;
 }) {
   const [status, setStatus] = useState(initial);
@@ -37,9 +36,6 @@ export function ChannelHeader({
         if (!cancelled) setStatus(data);
       } catch {}
     }
-
-    // Callers that can't render a status on the server (the demo) would sit on
-    // a placeholder until the first interval otherwise.
     void refresh();
 
     const poll = setInterval(refresh, POLL_MS);
@@ -74,7 +70,6 @@ export function ChannelHeader({
           />
         </div>
       ) : (
-        // No avatar: a channel without one, or Twitch being unreachable.
         <div
           className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-white/5 text-xl font-semibold text-zinc-500 ${
             stream ? "ring-2 ring-red-500 ring-offset-2 ring-offset-[#0a0a0f]" : ""
@@ -95,7 +90,6 @@ export function ChannelHeader({
                 Live
               </span>
               <span className="text-zinc-400">{formatUptime(stream.startedAt)}</span>
-              {/* Defensive: a missing count must not take the dashboard down. */}
               {Number.isFinite(stream.viewerCount) && (
                 <>
                   <span className="text-zinc-600">·</span>
@@ -118,8 +112,6 @@ export function ChannelHeader({
             </span>
           )}
         </div>
-
-        {/* Its own line: titles are long and would push the badges around. */}
         {stream?.title && (
           <p className="mt-1 truncate text-sm text-zinc-500" title={stream.title}>
             {stream.title}

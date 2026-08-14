@@ -12,11 +12,6 @@ export const cardClass = "rounded-2xl border border-white/10 bg-white/[0.03] p-6
 
 export const REPO_URL = "https://github.com/lekluge/koipond";
 
-/**
- * Footnote linking to the source. `floating` pins it to the bottom of the viewport for the
- * centered single-card pages; without it, it sits at the end of a scrolling page.
- * Deliberately not in the root layout — the overlay must stay empty for OBS.
- */
 export function SourceLink({ floating = false }: { floating?: boolean }) {
   return (
     <footer
