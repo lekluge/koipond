@@ -140,7 +140,7 @@ export default async function AdminPage({
           <div className={cardClass}>
             <div className="mb-3 flex items-center justify-between gap-4">
               <h2 className="font-semibold text-zinc-100">Entries</h2>
-              <EntriesToggleButton />
+              
             </div>
             <EntriesPanel />
           </div>
@@ -462,12 +462,14 @@ function KeywordDrawSettings({
       </div>
 
       <div className="mt-4 flex items-center justify-between">
+        <EntriesToggleButton />
         <p className="text-sm text-zinc-400">
           <span className="font-semibold text-zinc-100">
             <LiveEligibleCount initialCount={eligibleCount} />
           </span>{" "}
           eligible
         </p>
+        
         <PickWinnerButton />
       </div>
     </>
