@@ -140,7 +140,7 @@ export default async function AdminPage({
           <div className={cardClass}>
             <div className="mb-3 flex items-center justify-between gap-4">
               <h2 className="font-semibold text-zinc-100">Entries</h2>
-              <EntriesToggleButton />
+              
             </div>
             <EntriesPanel />
           </div>
@@ -468,6 +468,7 @@ function KeywordDrawSettings({
           </span>{" "}
           eligible
         </p>
+        <EntriesToggleButton />
         <PickWinnerButton />
       </div>
     </>
