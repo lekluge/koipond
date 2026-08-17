@@ -462,13 +462,14 @@ function KeywordDrawSettings({
       </div>
 
       <div className="mt-4 flex items-center justify-between">
+        <EntriesToggleButton />
         <p className="text-sm text-zinc-400">
           <span className="font-semibold text-zinc-100">
             <LiveEligibleCount initialCount={eligibleCount} />
           </span>{" "}
           eligible
         </p>
-        <EntriesToggleButton />
+        
         <PickWinnerButton />
       </div>
     </>
